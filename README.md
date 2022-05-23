@@ -1,7 +1,7 @@
 # ves_test
 # Usage:
-C:/Users/afok/AppData/Local/Programs/Python/Python39/python.exe "c:/Work/Private/BGU/Thesis/Thesis Code/visual_cryptography_py3.py" -t Lenna.png -c LennaBWOrig.jpeg
-python.exe visual_cryptography_py3.py
+C:/Users/afok/AppData/Local/Programs/Python/Python39/python.exe "c:/Work/Private/BGU/Thesis/Thesis Code/alg1.py" -t Lenna.png -c LennaBWOrig.jpeg
+python.exe alg1.py
 
 # out_images
 The test folders. The following naming convention used:
