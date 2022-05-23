@@ -2,7 +2,7 @@
 # Usage:
 C:/Users/afok/AppData/Local/Programs/Python/Python39/python.exe "c:/Work/Private/BGU/Thesis/Thesis Code/alg1.py" -t Lenna.png -c LennaBWOrig.jpeg
 
-python.exe alg1.py
+python.exe alg1.py --help
 
 # out_images
 The test folders. The following naming convention used:
