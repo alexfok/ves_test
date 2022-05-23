@@ -6,14 +6,23 @@ python.exe alg1.py
 
 # out_images
 The test folders. The following naming convention used:
+
 {image_name}_bw.png - Original image {image_name} (Lenna_bw.png)
+
 {image_name}_slideA.png - VES slide A
+
 {image_name}_slideB.png - VES slide B
+
 {image_name}_bw_C.png - image used for comparison (C)
+
 {image_name}_slideA_P.png - VES slide A AND C
+
 {image_name}_slideA_N.png - VES slide A AND NOT(C)
+
 {image_name}_slideB_P.png - VES slide B AND C
+
 {image_name}_slideB_N.png - VES slide B AND NOT(C)
+
 
 # Folder Test1_Rect
 LennaBW1_bw_C.png used for comparison - Black rectangle with white rectangle in the middle
