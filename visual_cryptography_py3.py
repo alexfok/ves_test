@@ -46,12 +46,8 @@ img_filename_bw = ""
 cimg_filename_bw = ""
 slide_filename_A = ""
 slide_filename_B = ""
-slide_filename_A1 = ""
-slide_filename_A2 = ""
-slide_filename_B1 = ""
-slide_filename_B2 = ""
 
-def and_images(cinfile):
+def and_images(cinfile, slide_filename):
     ############################
     # Candidate image preparation
     cimg = Image.open(cinfile)
@@ -59,14 +55,15 @@ def and_images(cinfile):
     cimg.save(cimg_filename_bw, 'PNG')
     print("Candidate Image size: {}".format(cimg.size))
     # Slides images preparation
-    slide_A = Image.open(slide_filename_A)
+    slide = Image.open(slide_filename  + ".png")
+
 
     width = cimg.size[0]*2
     height = cimg.size[1]*2
-    slide_image_A1 = Image.new('1', (width, height))
-    slide_image_A2 = Image.new('1', (width, height))
-    draw_slide_A1 = ImageDraw.Draw(slide_image_A1)
-    draw_slide_A2 = ImageDraw.Draw(slide_image_A2)
+    slide_image_1 = Image.new('1', (width, height))
+    slide_image_2 = Image.new('1', (width, height))
+    slide_filename_1 = slide_filename + '_P.png'
+    slide_filename_2 = slide_filename + '_N.png'
 
     # Cycle through pixels
     for x in xrange(0, int(width/2)):
@@ -76,11 +73,18 @@ def and_images(cinfile):
 
             # AND candidate and target slide images
 #            slide_image_A1.putpixel((x*2, y*2), slide_A.getpixel((x*2, y*2)) & pixel2)
-            draw_slide_A1.point((x*2, y*2), slide_A.getpixel((x*2, y*2)) & pixel2)
-            draw_slide_A1.point((x*2+1, y*2), slide_A.getpixel((x*2+1, y*2)) & pixel2)
-            draw_slide_A1.point((x*2, y*2+1), slide_A.getpixel((x*2, y*2+1)) & pixel2)
-            draw_slide_A1.point((x*2+1, y*2+1), slide_A.getpixel((x*2+1, y*2+1)) & pixel2)
-            
+            slide_image_1.putpixel((x*2, y*2), slide.getpixel((x*2, y*2)) & pixel2)
+            slide_image_1.putpixel((x*2+1, y*2), slide.getpixel((x*2+1, y*2)) & pixel2)
+            slide_image_1.putpixel((x*2, y*2+1), slide.getpixel((x*2, y*2+1)) & pixel2)
+            slide_image_1.putpixel((x*2+1, y*2+1), slide.getpixel((x*2+1, y*2+1)) & pixel2)
+
+            # AND negative candidate and target slide images
+            pixel2 = ~cimg.getpixel((x, y))
+            slide_image_2.putpixel((x*2, y*2), slide.getpixel((x*2, y*2)) & pixel2)
+            slide_image_2.putpixel((x*2+1, y*2), slide.getpixel((x*2+1, y*2)) & pixel2)
+            slide_image_2.putpixel((x*2, y*2+1), slide.getpixel((x*2, y*2+1)) & pixel2)
+            slide_image_2.putpixel((x*2+1, y*2+1), slide.getpixel((x*2+1, y*2+1)) & pixel2)
+
 #            print("Pixels: A1:{} A:{} C:{}".format(slide_image_A1.getpixel((x*2, y*2)), slide_A.getpixel((x*2, y*2)), pixel2))
 # #            slide_image_A1.putpixel((x*2, y*2), slide_A.getpixel((x*2, y*2)) & pixel2)
 #            p = slide_A.getpixel((x*2, y*2)) & pixel2
@@ -95,8 +99,8 @@ def and_images(cinfile):
 #            draw_slide_A2.point((x*2, y*2+1), slide_A.getpixel((x*2, y*2+1)) & pixel2)
 #            draw_slide_A2.point((x*2+1, y*2+1), slide_A.getpixel((x*2+1, y*2+1)) & pixel2)
 #        print('\n')
-    slide_image_A1.save(slide_filename_A1, 'PNG')
-    slide_image_A2.save(slide_filename_A2, 'PNG')
+    slide_image_1.save(slide_filename_1, 'PNG')
+    slide_image_2.save(slide_filename_2, 'PNG')
     return
 
 def encryptImage(infile):
@@ -138,8 +142,8 @@ def encryptImage(infile):
                 draw_B.point((x*2, y*2+1), pat[2])
                 draw_B.point((x*2+1, y*2+1), pat[3])
 
-    slide_image_A.save(slide_filename_A, 'PNG')
-    slide_image_B.save(slide_filename_B, 'PNG')
+    slide_image_A.save(slide_filename_A + ".png", 'PNG')
+    slide_image_B.save(slide_filename_B + ".png", 'PNG')
 
 
 def main():
@@ -147,10 +151,6 @@ def main():
     global cimg_filename_bw
     global slide_filename_A
     global slide_filename_B
-    global slide_filename_A1
-    global slide_filename_A2
-    global slide_filename_B1
-    global slide_filename_B2
 
     """
     parse the arguments and parse the topology file
@@ -183,23 +183,19 @@ def main():
     # Set output file names
     f, e = os.path.splitext(infile)
     img_filename_bw = "out_images/" + f + "_bw.png"
-    slide_filename_A = "out_images/" + f + "_slideA.png"
-    slide_filename_B = "out_images/" + f + "_slideB.png"
+    slide_filename_A = "out_images/" + f + "_slideA"
+    slide_filename_B = "out_images/" + f + "_slideB"
 
     f, e = os.path.splitext(cinfile)
-    cimg_filename_bw = "out_images/" + f + "_bw.png"
-    slide_filename_A1 = "out_images/" + f + "_slideA1.png"
-    slide_filename_A2 = "out_images/" + f + "_slideA2.png"
-    slide_filename_B1 = "out_images/" + f + "_slideB1.png"
-    slide_filename_B2 = "out_images/" + f + "_slideB2.png"
+    cimg_filename_bw = "out_images/" + f + "_bw_C.png"
 
     encryptImage(infile)
 
     print("Encryption Done.")
 
     print("Going to AND images")
-    and_images(cinfile)
-
+    and_images(cinfile, slide_filename_A)
+    and_images(cinfile, slide_filename_B)
     print("Done.")
 
 if __name__ == '__main__':
