@@ -30,3 +30,24 @@ LennaBW1_bw_C.png used for comparison - Black rectangle with white rectangle in 
 LennaBW_bw_C.png used for comparison - original Lenna image black\white with addition of black areas
 # Folder Test3_LennaOrig
 LennaBWOrig_bw_C.png used for comparison - original Lenna image black\white
+
+timage_pixel_xy: 255, cimage_pixel_xy: 0
+pixels_xy: 0, pixels_x1y:0, pixels_xy1: 0, pixels_x1y1: 0
+
+timage_pixel_xy: 0, cimage_pixel_xy: 0
+pixels_xy: 0, pixels_x1y:0, pixels_xy1: 0, pixels_x1y1: 0
+
+timage_pixel_xy: 0, cimage_pixel_xy: 0
+pixels_xy: 255, pixels_x1y:0, pixels_xy1: 255, pixels_x1y1: 0
+
+timage_pixel_xy: 0, cimage_pixel_xy: 0
+pixels_xy: 255, pixels_x1y:0, pixels_xy1: 255, pixels_x1y1: 0
+
+timage_pixel_xy: 255, cimage_pixel_xy: 0
+pixels_xy: 255, pixels_x1y:255, pixels_xy1: 0, pixels_x1y1: 0
+
+timage_pixel_xy: 255, cimage_pixel_xy: 255
+pixels_xy: 0, pixels_x1y:0, pixels_xy1: 0, pixels_x1y1: 0
+
+timage_pixel_xy: 0, cimage_pixel_xy: 255
+pixels_xy: 0, pixels_x1y:0, pixels_xy1: 255, pixels_x1y1: 255
