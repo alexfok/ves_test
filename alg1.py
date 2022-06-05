@@ -1,7 +1,7 @@
 # Thanks to Robert Donovan, LessonStudio, for the original VES implementation
 # ves_test
 # Usage:
-# python.exe alg1.py -t Lenna.png -c LennaBWOrig.jpeg
+# python.exe alg1.py -t Lenna.png -c LennaBWOrig.jpeg -enc
 # python.exe alg1.py
 
 from PIL import Image, ImageDraw
@@ -19,6 +19,25 @@ img_filename_bw = ""
 cimg_filename_bw = ""
 slide_filename_A = ""
 slide_filename_B = ""
+
+def printImage(infile):
+    timg = Image.open(infile)
+    width = timg.size[0]
+    height = timg.size[1]
+    # Cycle through pixels
+    print("image: {}\n".format(infile))
+    # for x in xrange(0, int(width/2)):
+    #     for y in xrange(0, int(height/2)):
+    #         if type(pixel) == tuple:
+    #             pixel = timg.getpixel((x, y))
+    #         print("{}".format(pixel))
+    #     print("\n")
+
+    pixels = list(timg.getdata())
+    for i in range(0, height):
+        print("{}\n".format(pixels[i * width:(i + 1) * width]))
+
+
 
 def recover_compared_image_count(infile, cinfile, slide_filename_A, slide_filename_B, ext):
     ############################
@@ -42,46 +61,53 @@ def recover_compared_image_count(infile, cinfile, slide_filename_A, slide_filena
     recovered_image = Image.new('1', slide_image_1.size)
 
     match_pixel_count = 0
+    mismatch_pixel_count = 0
     # Cycle through pixels
     for x in xrange(0, int(width/2)):
         for y in xrange(0, int(height/2)):
 #            pixel1 = slide_image_1.getpixel((x, y))
 #            pixel2 = slide_image_2.getpixel((x, y))
-            timage_pixel_xy = timg.getpixel((x, y))
-            cimage_pixel_xy = cimg.getpixel((x, y))
-            pixels_xy = slide_image_1.getpixel((x*2, y*2)) & slide_image_2.getpixel((x*2, y*2))
-            pixels_x1y = slide_image_1.getpixel((x*2+1, y*2)) & slide_image_2.getpixel((x*2+1, y*2))
-            pixels_xy1 = slide_image_1.getpixel((x*2, y*2+1)) & slide_image_2.getpixel((x*2, y*2+1))
-            pixels_x1y1 = slide_image_1.getpixel((x*2+1, y*2+1)) & slide_image_2.getpixel((x*2+1, y*2+1))
-            sub_pixel_count = pixels_xy + pixels_x1y + pixels_xy1 + pixels_x1y1
-            if ext == '_P.png':
-                flag = 'Positive'
-                if timage_pixel_xy == 0 and cimage_pixel_xy == 0 and sub_pixel_count == 0:
-                    match_pixel_count = match_pixel_count + 1
-            if ext == '_N.png':
-                flag = 'Negative'
-#                print("\n(x, y) {}, timage_pixel_xy: {}, cimage_pixel_xy: {}".format((x, y), timage_pixel_xy, cimage_pixel_xy))
-#                print("pixels_xy: {}, pixels_x1y:{}, pixels_xy1: {}, pixels_x1y1: {}".format(pixels_xy, pixels_x1y, pixels_xy1, pixels_x1y1))
-                if timage_pixel_xy == 255 and cimage_pixel_xy == 255 and sub_pixel_count == 0:
-                    match_pixel_count = match_pixel_count + 1
-                # if (ext == '_P.png'):
-            #     print("\n(x, y) {}, timage_pixel_xy: {}, cimage_pixel_xy: {}".format((x, y), timage_pixel_xy, cimage_pixel_xy))
-            #     print("pixels_xy: {}, pixels_x1y:{}, pixels_xy1: {}, pixels_x1y1: {}".format(pixels_xy, pixels_x1y, pixels_xy1, pixels_x1y1))
-            # else:
-            #     pixel_count_n = pixel_count_n + 1
-
             # AND candidate and target slide images
-#            slide_image_A1.putpixel((x*2, y*2), slide_A.getpixel((x*2, y*2)) & pixel2)
             recovered_image.putpixel((x*2, y*2), slide_image_1.getpixel((x*2, y*2)) & slide_image_2.getpixel((x*2, y*2)))
             recovered_image.putpixel((x*2+1, y*2), slide_image_1.getpixel((x*2+1, y*2)) & slide_image_2.getpixel((x*2+1, y*2)))
             recovered_image.putpixel((x*2, y*2+1), slide_image_1.getpixel((x*2, y*2+1)) & slide_image_2.getpixel((x*2, y*2+1)))
             recovered_image.putpixel((x*2+1, y*2+1), slide_image_1.getpixel((x*2+1, y*2+1)) & slide_image_2.getpixel((x*2+1, y*2+1)))
 
 
+            timage_pixel_xy = timg.getpixel((x, y))
+            cimage_pixel_xy = cimg.getpixel((x, y))
+            pixels_xy = recovered_image.getpixel((x*2, y*2))
+            pixels_x1y = recovered_image.getpixel((x*2+1, y*2))
+            pixels_xy1 = recovered_image.getpixel((x*2, y*2+1))
+            pixels_x1y1 = recovered_image.getpixel((x*2+1, y*2+1))
+            sub_pixel_count = pixels_xy + pixels_x1y + pixels_xy1 + pixels_x1y1
+            # if sub_pixel_count != 0:
+            #     print("\n(x, y) {}, timage_pixel_xy: {}, cimage_pixel_xy: {}".format((x, y), timage_pixel_xy, cimage_pixel_xy))
+            #     print("pixels_xy: {}, pixels_x1y:{}, pixels_xy1: {}, pixels_x1y1: {}".format(pixels_xy, pixels_x1y, pixels_xy1, pixels_x1y1))
+            #     print("sub_pixel_count: {}".format(sub_pixel_count))
+            if ext == '_P.png':
+                flag = 'Positive'
+                if cimage_pixel_xy == 255 and sub_pixel_count > 0:
+                    if timage_pixel_xy == 255:
+                        match_pixel_count = match_pixel_count + 1
+                    else:
+                        mismatch_pixel_count = mismatch_pixel_count + 1
+            if ext == '_N.png':
+                flag = 'Negative'
+#                print("\n(x, y) {}, timage_pixel_xy: {}, cimage_pixel_xy: {}".format((x, y), timage_pixel_xy, cimage_pixel_xy))
+#                print("pixels_xy: {}, pixels_x1y:{}, pixels_xy1: {}, pixels_x1y1: {}".format(pixels_xy, pixels_x1y, pixels_xy1, pixels_x1y1))
+                if cimage_pixel_xy == 0 and sub_pixel_count == 0:
+                    if timage_pixel_xy == 0:
+                        match_pixel_count = match_pixel_count + 1
+                    else:
+                        mismatch_pixel_count = mismatch_pixel_count + 1
+
+
+
     recovered_image_name = Path(cinfile).stem
     recovered_image_name = 'out_images/' + recovered_image_name + '_R' + ext
     total_pixels = int(width/2)*int(height/2)
-    print("compare images result image: {}, {} cimage: {}, match_pixel_count: {}, total_pixels: {}, match percentage: {:.2%}".format(infile, flag, cinfile, match_pixel_count, total_pixels, match_pixel_count/total_pixels))
+    print("compare images result image: {}, {} cimage: {}, match_pixel_count: {}, mismatch_pixel_count: {}, total_pixels: {}, match percentage: {:.2%}".format(infile, flag, recovered_image_name, match_pixel_count, mismatch_pixel_count, total_pixels, match_pixel_count/total_pixels))
     recovered_image.save(recovered_image_name, 'PNG')
     return
 
@@ -108,8 +134,6 @@ def recover_compared_image(cinfile, slide_filename_A, slide_filename_B, ext):
     # Cycle through pixels
     for x in xrange(0, int(width/2)):
         for y in xrange(0, int(height/2)):
-#            pixel1 = slide_image_1.getpixel((x, y))
-#            pixel2 = slide_image_2.getpixel((x, y))
             pixels_xy = slide_image_1.getpixel((x*2, y*2)) & slide_image_2.getpixel((x*2, y*2))
             pixels_x1y = slide_image_1.getpixel((x*2+1, y*2)) & slide_image_2.getpixel((x*2+1, y*2))
             pixels_xy1 = slide_image_1.getpixel((x*2, y*2+1)) & slide_image_2.getpixel((x*2, y*2+1))
@@ -117,7 +141,6 @@ def recover_compared_image(cinfile, slide_filename_A, slide_filename_B, ext):
             print("pixels_xy: {}, pixels_x1y:{}, pixels_xy1: {}, pixels_x1y1: {}".format(pixels_xy, pixels_x1y, pixels_xy1, pixels_x1y1))
 
             # AND candidate and target slide images
-#            slide_image_A1.putpixel((x*2, y*2), slide_A.getpixel((x*2, y*2)) & pixel2)
             recovered_image.putpixel((x*2, y*2), slide_image_1.getpixel((x*2, y*2)) & slide_image_2.getpixel((x*2, y*2)))
             recovered_image.putpixel((x*2+1, y*2), slide_image_1.getpixel((x*2+1, y*2)) & slide_image_2.getpixel((x*2+1, y*2)))
             recovered_image.putpixel((x*2, y*2+1), slide_image_1.getpixel((x*2, y*2+1)) & slide_image_2.getpixel((x*2, y*2+1)))
@@ -145,13 +168,16 @@ def encryptImage(infile):
     slide_image_B = Image.new('1', (width, height))
     draw_A = ImageDraw.Draw(slide_image_A)
     draw_B = ImageDraw.Draw(slide_image_B)
-    # There are 6(4 choose 2) possible patterns and it is too late for me to think in binary and do these efficiently
+    # There are 6(4 choose 2) possible patterns
     patterns = ((1, 1, 0, 0), (1, 0, 1, 0), (1, 0, 0, 1),
                 (0, 1, 1, 0), (0, 1, 0, 1), (0, 0, 1, 1))
     # Cycle through pixels
     for x in xrange(0, int(width/2)):
         for y in xrange(0, int(height/2)):
             pixel = img.getpixel((x, y))
+            if type(pixel) == tuple:
+                print("Error: The pixel is RGB, convert it to grey scale before running the encryption".format(infile))
+                exit()
             pat = random.choice(patterns)
             # A will always get the pattern
             draw_A.point((x*2, y*2), pat[0])
@@ -199,7 +225,6 @@ def and_images(cinfile, slide_filename):
             pixel2 = cimg.getpixel((x, y))
 
             # AND candidate and target slide images
-#            slide_image_A1.putpixel((x*2, y*2), slide_A.getpixel((x*2, y*2)) & pixel2)
             slide_image_1.putpixel((x*2, y*2), slide.getpixel((x*2, y*2)) & pixel2)
             slide_image_1.putpixel((x*2+1, y*2), slide.getpixel((x*2+1, y*2)) & pixel2)
             slide_image_1.putpixel((x*2, y*2+1), slide.getpixel((x*2, y*2+1)) & pixel2)
@@ -254,6 +279,7 @@ def main():
     parser.add_argument('-t', dest='t', help='The image to be split', required=True, default=False)
     parser.add_argument('-c', dest='c', help="The image to compare", required=True, default=False)
     parser.add_argument('-enc', action='store_true', help='Perform image encryption, default - use existing slides')
+    parser.add_argument('-pix', action='store_true', help='Print binary images, default - do not print')
     args = parser.parse_args()
 
     infile = str(args.t)
@@ -267,12 +293,22 @@ def main():
 
     # Set output file names
     f, e = os.path.splitext(infile)
+#    print("f:{}".format(f))
+    f = Path(infile).stem
+#    print("f:{}".format(f))
     img_filename_bw = "out_images/" + f + "_bw.png"
     slide_filename_A = "out_images/" + f + "_slideA"
     slide_filename_B = "out_images/" + f + "_slideB"
 
     f, e = os.path.splitext(cinfile)
+    f = Path(cinfile).stem
     cimg_filename_bw = "out_images/" + f + "_bw_C.png"
+
+    if args.pix:
+        print("Going to print images image: {} cimage: {}".format(infile, cinfile))
+        printImage(infile)
+        printImage(cinfile)
+        print("Print Imagaes Done.")
 
     if args.enc:
         print("Going to encrypt image: {}".format(infile))
