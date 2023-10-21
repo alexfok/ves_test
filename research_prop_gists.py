@@ -7,6 +7,7 @@ from random import SystemRandom
 import argparse
 from pathlib import Path
 import random
+import cv2
 
 #random = SystemRandom()
 
@@ -81,6 +82,282 @@ def printImage(infile):
     pixels = list(timg.getdata())
     for i in range(0, height):
         print("{}\n".format(pixels[i * width:(i + 1) * width]))
+
+def create_rgb_slide(infile):
+    ############################
+    # Candidate image preparation
+    #img = Image.open(infile)
+#    img = img.convert('1')  # convert image to 1 bit
+#    infile_img.save(cimg_filename_bw, 'PNG')
+#    print("save_negative_image: Candidate Image size: {}".format(infile_img.size))
+
+    infile_name = Path(infile).stem
+
+    # Split the image into R, G, and B channels
+    # Load the RGB image
+    image = cv2.imread(infile)
+#    img_b, img_g, img_r = cv2.split(image)
+    # Convert the image to RGB color space
+#    img_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    img_rgb = image
+
+    # Extract the R, G, and B channels
+    img_b = img_rgb[:, :, 0]
+    img_g = img_rgb[:, :, 1]
+    img_r = img_rgb[:, :, 2]
+
+    # Create a new image with only the blue channel
+    out_img_r = np.zeros_like(image)
+    out_img_g = np.zeros_like(image)
+    out_img_b = np.zeros_like(image)
+#    out_img_r[:, :, 0] = img_r
+#    out_img_g[:, :, 1] = img_g
+#    out_img_b[:, :, 2] = img_b
+    out_img_b[:, :, 0] = img_rgb[:, :, 0]
+    out_img_g[:, :, 1] = img_rgb[:, :, 1]
+    out_img_r[:, :, 2] = img_rgb[:, :, 2]
+
+    # Save or work with the individual channels as needed
+    cv2.imwrite(infile_name + '_gr_r.png', img_r)
+    cv2.imwrite(infile_name + '_gr_g.png', img_g)
+    cv2.imwrite(infile_name + '_gr_b.png', img_b)
+    cv2.imwrite(infile_name + '_c_r.png', out_img_r)
+    cv2.imwrite(infile_name + '_c_g.png', out_img_g)
+    cv2.imwrite(infile_name + '_c_b.png', out_img_b)
+
+#    printImage(infile_name + '_gr_r.png')
+#    printImage(infile_name + '_gr_b.png')
+#    return
+
+    out_img_r2 = np.zeros_like(image)
+    out_img_g2 = np.zeros_like(image)
+    out_img_b2 = np.zeros_like(image)
+    print(image.shape)
+    print(image.size)
+    width = image.shape[0]
+    height = image.shape[1]
+    # Define the colors
+    white_color = (255, 255, 255)  # RGB value for blue
+    blue_color = (255, 0, 0)  # RGB value for blue
+    green_color = (0, 255, 0)  # RGB value for green
+    red_color = (0, 0, 255)  # RGB value for red
+#    img2 = Image.new(mode="RGB", size=(width, height), color = blue_color)
+    # Define the colors
+    colors_b = [blue_color, white_color]
+    colors_g = [green_color, white_color]
+    colors_r = [red_color, white_color]
+    black_pixels_count = 0
+    white_pixels_count = 0
+
+    # Cycle through pixels
+    for x in range(0, int(width)):
+        for y in range(0, int(height)):
+            # Draw a random color
+            random_color = random.choice(colors_b)
+            out_img_b2[x, y] = random_color
+            random_color = random.choice(colors_g)
+            out_img_g2[x, y] = random_color
+            random_color = random.choice(colors_r)
+            out_img_r2[x, y] = random_color
+
+    print("WXH ({},{}) black_pixels_count: {} white_pixels_count {}".format(width, height, black_pixels_count, white_pixels_count))
+    # 262144
+
+    cv2.imwrite(infile_name + '_slide_b.png', out_img_b2)
+    cv2.imwrite(infile_name + '_slide_g.png', out_img_g2)
+    cv2.imwrite(infile_name + '_slide_r.png', out_img_r2)
+    #img2.save(outfile, 'PNG')
+#    printImage(outfile)
+    return
+
+def create_single_rgb_slide(infile, color):
+    ############################
+    # Candidate image preparation
+    #img = Image.open(infile)
+#    img = img.convert('1')  # convert image to 1 bit
+#    infile_img.save(cimg_filename_bw, 'PNG')
+#    print("save_negative_image: Candidate Image size: {}".format(infile_img.size))
+    print('create_single_rgb_slide')
+    infile_name = Path(infile).stem
+    infile_name = 'ncaieee/' + infile_name
+    # Split the image into R, G, and B channels
+    # Load the RGB image
+    image = cv2.imread(infile)
+#    img_b, img_g, img_r = cv2.split(image)
+    # Convert the image to RGB color space
+#    img_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    img_rgb = image
+
+    # Extract the R, G, and B channels and Create a new images with only single channel
+    out_img_c = np.zeros_like(image)
+    if color == 'b':
+        out_img_gr = img_rgb[:, :, 0]
+        out_img_c[:, :, 0] = img_rgb[:, :, 0]
+    elif color == 'g':
+        out_img_gr = img_rgb[:, :, 1]
+        out_img_c[:, :, 1] = img_rgb[:, :, 1]
+    elif color == 'r':
+        out_img_gr = img_rgb[:, :, 2]
+        out_img_c[:, :, 2] = img_rgb[:, :, 2]
+
+    # Save or work with the individual channels as needed
+    print(out_img_gr.shape)
+    print(out_img_gr.size)
+    cv2.imwrite(infile_name + f'_gr_{color}.png', out_img_gr)
+    cv2.imwrite(infile_name + f'_c_{color}.png', out_img_c)
+
+    out_img_2 = np.zeros_like(image)
+#    print(image.shape)
+#    print(image.size)
+    width = image.shape[0]
+    height = image.shape[1]
+    # Define the colors
+    white_color = (255, 255, 255)  # RGB value for blue
+    blue_color = (255, 0, 0)  # RGB value for blue
+    green_color = (0, 255, 0)  # RGB value for green
+    red_color = (0, 0, 255)  # RGB value for red
+#    img2 = Image.new(mode="RGB", size=(width, height), color = blue_color)
+    # Define the colors
+    colors = []
+    if color == 'b':
+        colors = [blue_color, white_color]
+    elif color == 'g':
+        colors = [green_color, white_color]
+    elif color == 'r':
+        colors = [red_color, white_color]
+
+    # Cycle through pixels and create random slide from the original and white color
+    for x in range(0, int(width)):
+        for y in range(0, int(height)):
+            # Draw a random color
+            random_color = random.choice(colors)
+            out_img_2[x, y] = random_color
+
+    cv2.imwrite(infile_name + f'_slide_{color}.png', out_img_2)
+##
+    # Cycle through pixels and create random slide from the original and white color
+    # Redefine the colors
+    out_img_2gr = np.zeros_like(image)
+    out_img_2c = np.zeros_like(image)
+    random_percentage = random.uniform(0, 100)
+    random_percentage = 30.0
+    print(f'random_percentage: {random_percentage}')
+    for x in range(0, int(width)):
+        for y in range(0, int(height)):
+            # Draw a random color
+            random_color = random.choice(colors)
+            out_img_2gr[x,y] = out_img_gr[x,y]
+            out_img_2c[x,y] = out_img_c[x,y]
+            out_img_2gr[x,y] = out_img_2gr[x,y] - (random_percentage / 100) * out_img_2gr[x,y]
+            if color == 'b':
+                #out_img_2gr[x,y,0] = out_img_2gr[x,y,0] - (random_percentage / 100) * out_img_2gr[x,y,0]
+                out_img_2c[x,y,0] = out_img_2c[x,y,0] - (random_percentage / 100) * out_img_2c[x,y,0]
+            elif color == 'g':
+                #out_img_2gr[x,y,1] = out_img_2gr[x,y,1] - (random_percentage / 100) * out_img_2gr[x,y,0]
+                out_img_2c[x,y,1] = out_img_2c[x,y,1] - (random_percentage / 100) * out_img_2c[x,y,0]
+            elif color == 'r':
+                #out_img_2gr[x,y,2] = out_img_2gr[x,y,2] - (random_percentage / 100) * out_img_2gr[x,y,0]
+                out_img_2c[x,y,2] = out_img_2c[x,y,2] - (random_percentage / 100) * out_img_2c[x,y,0]
+
+    cv2.imwrite(infile_name + f'_slide_{color}_gr_sub.png', out_img_2gr)
+    cv2.imwrite(infile_name + f'_slide_{color}_c_sub.png', out_img_2c)
+    #img2.save(outfile, 'PNG')
+#    printImage(outfile)
+    return
+
+def recover_image(infile):
+    print('recover_image')
+    infile_name = Path(infile).stem
+    infile_name = 'ncaieee/' + infile_name
+    # Split the image into R, G, and B channels
+    # Load the RGB image
+    image_r_gr = cv2.imread(infile_name + f'_slide_r_gr_sub.png')
+    image_g_gr = cv2.imread(infile_name + f'_slide_g_gr_sub.png')
+    image_b_gr = cv2.imread(infile_name + f'_slide_b_gr_sub.png')
+    image_r_c = cv2.imread(infile_name + f'_slide_r_c_sub.png')
+    image_g_c = cv2.imread(infile_name + f'_slide_g_c_sub.png')
+    image_b_c = cv2.imread(infile_name + f'_slide_b_c_sub.png')
+#    img_b, img_g, img_r = cv2.split(image)
+    # Convert the image to RGB color space
+#    img_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    out_img_2gr = np.zeros_like(image_r_gr)
+    out_img_2c = np.zeros_like(image_r_c)
+
+
+    out_img_2c[:, :, 0] = image_b_c[:, :, 0]
+    out_img_2c[:, :, 1] = image_g_c[:, :, 1]
+    out_img_2c[:, :, 2] = image_r_c[:, :, 2]
+    # Calculate the average of corresponding values
+
+#    out_img_2gr[:, :,] = (image_r_gr[:, :,] + image_g_gr[:, :,] + image_b_gr[:, :,])/3 + 30
+    out_img_2gr = (image_r_gr + image_g_gr + image_b_gr)/3 + 30
+
+    width = out_img_2gr.shape[0]
+    height = out_img_2gr.shape[1]
+    random_percentage = random.uniform(0, 100)
+    for x in range(0, int(width)):
+        for y in range(0, int(height)):
+            out_img_2c[x,y,0] = out_img_2c[x,y,0] - (random_percentage / 100) * out_img_2c[x,y,0]
+            out_img_2c[x,y,1] = out_img_2c[x,y,1] - (random_percentage / 100) * out_img_2c[x,y,1]
+            out_img_2c[x,y,2] = out_img_2c[x,y,2] - (random_percentage / 100) * out_img_2c[x,y,2]
+            #out_img_2c[x, y,0] = (image_r_gr[x, y] + image_g_gr[x, y] + image_b_gr[x, y])/3
+
+    cv2.imwrite(infile_name + f'_slide_gr_rec.png', out_img_2gr)
+    cv2.imwrite(infile_name + f'_slide_c_rec.png', out_img_2c)
+
+def create_gs_image(infile):
+    print('create_gs_image')
+    # Load the RGB image
+    rgb_image = cv2.imread(infile)
+    infile_name = Path(infile).stem
+    infile_name = 'ncaieee/' + infile_name + 'gl.png'
+
+    # Convert to grayscale
+    gray_image = cv2.cvtColor(rgb_image, cv2.COLOR_BGR2GRAY)
+
+    # Save the grayscale image
+    cv2.imwrite(infile_name, gray_image)
+
+def ves_games(infile):
+    print('ves_games')
+    # Load the RGB image
+    rgb_image = cv2.imread(infile)
+    infile_name = Path(infile).stem
+
+    # Convert to grayscale
+    gray_image = cv2.cvtColor(rgb_image, cv2.COLOR_BGR2GRAY)
+    gray_image2 = cv2.cvtColor(rgb_image, cv2.COLOR_BGR2GRAY)
+    shifted_pixels_count = 0
+    high_range_limit_count = 0
+    width = gray_image.shape[0]
+    height = gray_image.shape[1]
+    some_ranges = [(0, 31), (32, 63), (96, 127)]
+    step_ranges = [(0, 31), (32, 63), (64, 95), (96, 127), (128, 159), (160, 191), (192, 223), (224, 255)]
+    # Cycle through pixels
+    for x in range(0, int(width)):
+        for y in range(0, int(height)):
+            # Draw a random color
+            for start, end in some_ranges:
+                if start <= gray_image[x, y] <= end:
+                    # in_range = True
+                    gray_image[x, y] += 32
+                    shifted_pixels_count += 1
+    # Cycle through pixels
+    for x in range(0, int(width)):
+        for y in range(0, int(height)):
+            # Draw a random color
+            for start, end in step_ranges:
+                if start <= gray_image[x, y] <= end:
+                    # in_range = True
+                    if gray_image[x, y] == end:
+                        high_range_limit_count += 1
+                    gray_image2[x, y] = end
+
+    print("shifted_pixels_count: {} out of total pixels: {}, high_range_limit_count: {}".format(shifted_pixels_count, width*height, high_range_limit_count))
+
+    # Save the grayscale image
+    cv2.imwrite('ncaieee/' + infile_name + '_shifted.png', gray_image)
+    cv2.imwrite('ncaieee/' + infile_name + '_gs_8c.png', gray_image2)
 
 def create_gby_slide(infile):
     ############################
@@ -175,10 +452,20 @@ def create_gby_image(infile):
     return
 
 if __name__ == '__main__':
-#    infile = './Images/LennaBWOrig.jpeg'
+    infile = './Images/Lenna.png'
+    # create_single_rgb_slide(infile,'r')
+    # create_single_rgb_slide(infile,'b')
+    # create_single_rgb_slide(infile,'g')
+
+    # recover_image(infile)
+    # create_gs_image(infile)
+
+    ves_games(infile)
+
+    #create_rgb_slide(infile)
 #    create_gby_image(infile)
 #    create_gby_slide(infile)
-    main()
+#    main()
 '''
 # Create an array of x values from 0 to 4*pi
 x = np.linspace(0, 4*np.pi, 100)

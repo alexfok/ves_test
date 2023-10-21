@@ -19,6 +19,8 @@ img_filename_bw = ""
 cimg_filename_bw = ""
 slide_filename_A = ""
 slide_filename_B = ""
+base_out_dir = "ncaieee_ext/"
+#    base_out_dir = "out_images/"
 
 def printImage(infile):
     timg = Image.open(infile)
@@ -105,7 +107,7 @@ def recover_compared_image_count(infile, cinfile, slide_filename_A, slide_filena
 
 
     recovered_image_name = Path(cinfile).stem
-    recovered_image_name = 'out_images/' + recovered_image_name + '_R' + ext
+    recovered_image_name = base_out_dir + recovered_image_name + '_R' + ext
     total_pixels = int(width/2)*int(height/2)
     print("compare images result image: {}, {} cimage: {}, match_pixel_count: {}, mismatch_pixel_count: {}, total_pixels: {}, match percentage: {:.2%}".format(infile, flag, recovered_image_name, match_pixel_count, mismatch_pixel_count, total_pixels, match_pixel_count/total_pixels))
     recovered_image.save(recovered_image_name, 'PNG')
@@ -148,7 +150,7 @@ def recover_compared_image(cinfile, slide_filename_A, slide_filename_B, ext):
 
 
     recovered_image_name = Path(cinfile).stem
-    recovered_image_name = 'out_images/' + recovered_image_name + '_R' + ext
+    recovered_image_name = base_out_dir + recovered_image_name + '_R' + ext
     print("recover_compared_image: recovered_image name: {}".format(recovered_image_name))
     recovered_image.save(recovered_image_name, 'PNG')
     return
@@ -251,7 +253,7 @@ def save_negative_image(infile):
 
     infile_name = Path(infile).stem
     infile_img_n = Image.new('1', infile_img.size)
-    infile_name_n = "out_images/" + infile_name + '_N.png'
+    infile_name_n = base_out_dir + infile_name + '_N.png'
 
     width = infile_img.size[0]
     height = infile_img.size[1]
@@ -265,6 +267,51 @@ def save_negative_image(infile):
 
     infile_img_n.save(infile_name_n, 'PNG')
     return
+
+def encryptImageCol(infile):
+    img = Image.open(infile)
+
+    img = img.convert('1')  # convert image to 1 bit
+    img.save(img_filename_bw, 'PNG')
+
+    print("encryptImage: Target Image size: {}".format(img.size))
+    # Prepare two empty slider images for drawing
+    width = img.size[0]*2
+    height = img.size[1]*2
+    print("Slide size{} x {}".format(width, height))
+    slide_image_A = Image.new('1', (width, height))
+    slide_image_B = Image.new('1', (width, height))
+    draw_A = ImageDraw.Draw(slide_image_A)
+    draw_B = ImageDraw.Draw(slide_image_B)
+    # There are 6(4 choose 2) possible patterns
+    patterns = ((1, 1, 0, 0), (1, 0, 1, 0), (1, 0, 0, 1),
+                (0, 1, 1, 0), (0, 1, 0, 1), (0, 0, 1, 1))
+    # Cycle through pixels
+    for x in xrange(0, int(width/2)):
+        for y in xrange(0, int(height/2)):
+            pixel = img.getpixel((x, y))
+            if type(pixel) == tuple:
+                print("Error: The pixel is RGB, convert it to grey scale before running the encryption".format(infile))
+                exit()
+            pat = random.choice(patterns)
+            # A will always get the pattern
+            draw_A.point((x*2, y*2), pat[0])
+            draw_A.point((x*2+1, y*2), pat[1])
+            draw_A.point((x*2, y*2+1), pat[2])
+            draw_A.point((x*2+1, y*2+1), pat[3])
+            if pixel == 0:  # Dark pixel so B gets the anti pattern
+                draw_B.point((x*2, y*2), 1-pat[0])
+                draw_B.point((x*2+1, y*2), 1-pat[1])
+                draw_B.point((x*2, y*2+1), 1-pat[2])
+                draw_B.point((x*2+1, y*2+1), 1-pat[3])
+            else:
+                draw_B.point((x*2, y*2), pat[0])
+                draw_B.point((x*2+1, y*2), pat[1])
+                draw_B.point((x*2, y*2+1), pat[2])
+                draw_B.point((x*2+1, y*2+1), pat[3])
+
+    slide_image_A.save(slide_filename_A + ".png", 'PNG')
+    slide_image_B.save(slide_filename_B + ".png", 'PNG')
 
 def main():
     global img_filename_bw
@@ -280,6 +327,7 @@ def main():
     parser.add_argument('-c', dest='c', help="The image to compare", required=True, default=False)
     parser.add_argument('-enc', action='store_true', help='Perform image encryption, default - use existing slides')
     parser.add_argument('-pix', action='store_true', help='Print binary images, default - do not print')
+    parser.add_argument('-encc', action='store_true', help='Perform color image encryption')
     args = parser.parse_args()
 
     infile = str(args.t)
@@ -295,14 +343,20 @@ def main():
     f, e = os.path.splitext(infile)
 #    print("f:{}".format(f))
     f = Path(infile).stem
-#    print("f:{}".format(f))
-    img_filename_bw = "out_images/" + f + "_bw.png"
-    slide_filename_A = "out_images/" + f + "_slideA"
-    slide_filename_B = "out_images/" + f + "_slideB"
+#    print("f:{}".format(f))ncaieee_ext
+    img_filename_bw = base_out_dir + f + "_bw.png"
+    slide_filename_A = base_out_dir + f + "_slideA"
+    slide_filename_B = base_out_dir + f + "_slideB"
 
     f, e = os.path.splitext(cinfile)
     f = Path(cinfile).stem
-    cimg_filename_bw = "out_images/" + f + "_bw_C.png"
+    cimg_filename_bw = base_out_dir + f + "_bw_C.png"
+
+    if args.encc:
+        print("Going to encrypt image: {}".format(infile))
+        encryptImageCol(infile)
+        print("Encryption Done.")
+        exit()
 
     if args.pix:
         print("Going to print images image: {} cimage: {}".format(infile, cinfile))

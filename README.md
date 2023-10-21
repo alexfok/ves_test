@@ -1,8 +1,44 @@
+# TODO
+add col parameter
+duplicate encrypt function
+create 3 images from RGB - R,G,B
+print images
+
+# python ncaieee_ext.py -i ./Images/Lenna.png
+create_unary_images
+create_unary_labels: n_labels: 16
+range_size: 16, scale_factor: (4, 4), n_colors: 16, Labels[0]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]  
+width: 2048, height: 2048
+save image: ncaieee_ext/Lenna_gs_16c_inc.png
+
 # ves_test
 # Usage:
 C:/Users/afok/AppData/Local/Programs/Python/Python39/python.exe "c:/Work/Private/BGU/Thesis/Thesis Code/alg1.py" -t Lenna.png -c LennaBWOrig.jpeg
-
+# Match 2 identical images
+python alg1.py -t Images/LennaBWOrig.jpeg -c Images/LennaBWOrig.jpeg -enc
+<!-- compare images result image: Images/LennaBWOrig.jpeg, Positive cimage: ncaieee_ext/LennaBWOrig_R_P.png, match_pixel_count: 114451, mismatch_pixel_count: 0, total_pixels: 262144, match percentage: 43.66%
+compare images result image: Images/LennaBWOrig.jpeg, Negative cimage: ncaieee_ext/LennaBWOrig_R_N.png, match_pixel_count: 147693, mismatch_pixel_count: 0, total_pixels: 262144, match percentage: 56.34%
+recover and compare images Done. -->
+# Match original image with black square
+python alg1.py -t Images/LennaBWOrig.jpeg -c Images/LennaBWOrig_bs.jpg -enc
 python.exe alg1.py --help
+
+# ncaieee_ext/Lenna_gs_16c.png
+# python alg1.py -t ncaieee_ext/Lenna_gs_16c.png -c ncaieee_ext/Lenna_gs_16c.png -enc
+compare images result image: ncaieee_ext/Lenna_gs_16c.png, Positive cimage: ncaieee_ext/Lenna_gs_16c_R_P.png, match_pixel_count: 135246, mismatch_pixel_count: 0, total_pixels: 262144, match percentage: 51.59%
+compare images result image: ncaieee_ext/Lenna_gs_16c.png, Negative cimage: ncaieee_ext/Lenna_gs_16c_R_N.png, match_pixel_count: 126898, mismatch_pixel_count: 0, total_pixels: 262144, match percentage: 48.41%
+
+# python alg1.py -t ncaieee_ext/Lenna_gs_64c.png -c ncaieee_ext/Lenna_gs_64c.png -enc
+compare images result image: ncaieee_ext/Lenna_gs_64c.png, Positive cimage: ncaieee_ext/Lenna_gs_64c_R_P.png, match_pixel_count: 129035, mismatch_pixel_count: 0, total_pixels: 262144, match percentage: 49.22%
+compare images result image: ncaieee_ext/Lenna_gs_64c.png, Negative cimage: ncaieee_ext/Lenna_gs_64c_R_N.png, match_pixel_count: 133109, mismatch_pixel_count: 0, total_pixels: 262144, match percentage: 50.78%
+
+# python alg1.py -t ncaieee_ext/Lenna_gs_16c_inc.png -c ncaieee_ext/Lenna_gs_16c_inc.png -enc
+compare images result image: ncaieee_ext/Lenna_gs_16c_inc.png, Positive cimage: ncaieee_ext/Lenna_gs_16c_inc_R_P.png, match_pixel_count: 2171800, mismatch_pixel_count: 0, total_pixels: 4194304, match percentage: 51.78%        
+compare images result image: ncaieee_ext/Lenna_gs_16c_inc.png, Negative cimage: ncaieee_ext/Lenna_gs_16c_inc_R_N.png, match_pixel_count: 2022504, mismatch_pixel_count: 0, total_pixels: 4194304, match percentage: 48.22%        
+
+# python alg1.py -t ncaieee_ext/Lenna_gs_16c_inc.png -c ncaieee_ext/LennaBWOrig_bs_gs_16c_inc.png -enc
+compare images result image: ncaieee_ext/LennaBWOrig_bs_gs_16c_inc_R_P.png, match_pixel_count: 1381285, mismatch_pixel_count: 0, total_pixels: 4194304, match percentage: 32.93%
+compare images result image: ncaieee_ext/Lenna_gs_16c_inc.png, Negative cimage: ncaieee_ext/LennaBWOrig_bs_gs_16c_inc_R_N.png, match_pixel_count: 1467975, mismatch_pixel_count: 0, total_pixels: 4194304, match percentage: 35.00%       
 
 # out_images
 The test folders. The following naming convention used:

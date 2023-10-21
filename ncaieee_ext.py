@@ -533,10 +533,10 @@ def create_unary_images(infile):
     gray_image = cv2.cvtColor(rgb_image, cv2.COLOR_BGR2GRAY)
     width = gray_image.shape[0]
     height = gray_image.shape[1]
-    steps_ranges = [2,4,8,16,32,64,128]
-    scale_factors = [(8,16),(8,8),(4,8),(4,4),(2,4),(2,2),(1,2)]
-#    steps_ranges = [128]
-#    scale_factors = [(1,2)]
+#    steps_ranges = [2,4,8,16,32,64,128]
+#    scale_factors = [(8,16),(8,8),(4,8),(4,4),(2,4),(2,2),(1,2)]
+    steps_ranges = [16]
+    scale_factors = [(4,4)]
 
     for range_size, scale_factor in zip(steps_ranges,scale_factors):
         step_ranges = create_ranges(256, range_size)
@@ -580,6 +580,18 @@ def create_unary_images(infile):
 
 if __name__ == '__main__':
     infile = './Images/Lenna.png'
+    """
+    parse the arguments and parse the topology file
+    """
+    parser = argparse.ArgumentParser(prog='PROG', description='Images manipulation utility')
+    parser.add_argument('-i', dest='i', help='The input image', required=True, default=False)
+    args = parser.parse_args()
+
+    infile = str(args.i)
+    if not os.path.isfile(infile):
+        print("File {} does not exist.".format(infile))
+        exit()
+
     # create_single_rgb_slide(infile,'r')
     # create_single_rgb_slide(infile,'b')
     # create_single_rgb_slide(infile,'g')
