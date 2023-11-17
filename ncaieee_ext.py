@@ -473,11 +473,69 @@ def create_unary_labels(n_labels):
 
     return labels
 
-def create_unary_images(infile):
-    print('create_unary_images')
+# print_orig_and_unary_pixels - Run on the original image and print coordinates, original pixel value, unary label value from the steps_ranges list
+# run on 3 color files
+def print_orig_and_unary_pixels(r_infile, g_infile, b_infile,
+                                search_range = (200, 255), steps_ranges = [4,64]):
+    print('print_orig_and_unary_pixels')
+    # Load the RGB image
+    r_image = cv2.imread(r_infile)
+    infile_name = Path(infile).stem
+    print(f'print_orig_and_unary_pixels: read input image: {r_infile}')
+    print(f'print_orig_and_unary_pixels: search_ranges: {search_range}, steps_ranges: {steps_ranges}')
+    # Convert to grayscale
+    r_gray_image = cv2.cvtColor(r_image, cv2.COLOR_BGR2GRAY)
+
+    g_image = cv2.imread(g_infile)
+    b_image = cv2.imread(b_infile)
+    g_gray_image = cv2.cvtColor(g_image, cv2.COLOR_BGR2GRAY)
+    b_gray_image = cv2.cvtColor(b_image, cv2.COLOR_BGR2GRAY)
+
+    width = r_gray_image.shape[0]
+    height = r_gray_image.shape[1]
+#    steps_ranges = [2,4,8,16,32,64,128]
+#    steps_ranges = [64,128]
+#    range_size = 32
+#    n_colors = 256//range_size
+    for range_size in steps_ranges:
+        step_ranges = create_ranges(256, range_size)
+        found_pixel_count = 0
+        # print(step_ranges)
+        # n_colors = 256//range_size
+        # labels = create_unary_labels(len(step_ranges))
+        # print(f"range_size: {range_size}, Label: {labels[0]}")
+        print(f"range_size: {range_size}")
+
+        # Zero out gray_image
+        #gray_image[:] = 0
+        # Cycle through pixels
+        for x in range(0, int(width)):
+            for y in range(0, int(height)):
+                for start, end in step_ranges:
+                    if  start <= r_gray_image[x, y] <= end and \
+                        start <= g_gray_image[x, y] <= end and \
+                        start <= b_gray_image[x, y] <= end and \
+                        search_range[0] <= r_gray_image[x, y] <= search_range[1] and \
+                        search_range[0] <= g_gray_image[x, y] <= search_range[1] and \
+                        search_range[0] <= b_gray_image[x, y] <= search_range[1]:
+                        # in_range = True
+                        found_pixel_count += 1
+                        print(f'XY{x,y}: RGB{r_gray_image[x, y], g_gray_image[x, y], b_gray_image[x, y]} -> {end}')
+#                        print(f'XY{x,y}: RGB{r_gray_image[x, y], g_gray_image[x, y], b_gray_image[x, y]} -> start, end:{start, end}')
+
+        # Save the grayscale image
+        # out_file_name = root_dir + '/' + infile_name + f'_gs_{n_colors}c_noinc.png'
+        # print(f'save image: {out_file_name}')
+        # cv2.imwrite(out_file_name, gray_image)
+        print(f'found_pixel_count: {found_pixel_count}')
+
+# create_unary_images_no_inc - Operate on the original image and creates image of the original size
+def create_unary_images_no_inc(infile, root_dir='ncaieee_ext'):
+    print('create_unary_images_no_inc')
     # Load the RGB image
     rgb_image = cv2.imread(infile)
     infile_name = Path(infile).stem
+    print(f'create_unary_images_no_inc: read input image: {infile}')
 
     # Convert to grayscale
     gray_image = cv2.cvtColor(rgb_image, cv2.COLOR_BGR2GRAY)
@@ -489,10 +547,11 @@ def create_unary_images(infile):
 #    n_colors = 256//range_size
     for range_size in steps_ranges:
         step_ranges = create_ranges(256, range_size)
-        print(step_ranges)
+        # print(step_ranges)
         n_colors = 256//range_size
-        labels = create_unary_labels(len(step_ranges))
-        print(f"range_size: {range_size}, Label: {labels[0]}")
+        # labels = create_unary_labels(len(step_ranges))
+        # print(f"range_size: {range_size}, Label: {labels[0]}")
+        print(f"range_size: {range_size}")
 
         # Zero out gray_image
         #gray_image[:] = 0
@@ -505,7 +564,7 @@ def create_unary_images(infile):
                         gray_image[x, y] = end
 
         # Save the grayscale image
-        out_file_name = 'ncaieee_ext/' + infile_name + f'_gs_{n_colors}c.png'
+        out_file_name = root_dir + '/' + infile_name + f'_gs_{n_colors}c_noinc.png'
         print(f'save image: {out_file_name}')
         cv2.imwrite(out_file_name, gray_image)
 
@@ -522,21 +581,22 @@ def get_pixel_from_label(label):
         return 0
     else:
         return 255
-    
-def create_unary_images(infile):
-    print('create_unary_images')
+# create_unary_images - Creates increased image - each original pixel is replaced by the unary label
+def create_unary_images(infile, root_dir='ncaieee_ext'):
+    print('create_unary_images2')
     # Load the RGB image
     rgb_image = cv2.imread(infile)
     infile_name = Path(infile).stem
 
+    print(f'create_unary_images2: read input image: {infile}')
     # Convert to grayscale
     gray_image = cv2.cvtColor(rgb_image, cv2.COLOR_BGR2GRAY)
     width = gray_image.shape[0]
     height = gray_image.shape[1]
-#    steps_ranges = [2,4,8,16,32,64,128]
-#    scale_factors = [(8,16),(8,8),(4,8),(4,4),(2,4),(2,2),(1,2)]
-    steps_ranges = [16]
-    scale_factors = [(4,4)]
+    steps_ranges = [2,4,8,16,32,64,128]
+    scale_factors = [(8,16),(8,8),(4,8),(4,4),(2,4),(2,2),(1,2)]
+    # steps_ranges = [8]
+    # scale_factors = [(4,8)]
 
     for range_size, scale_factor in zip(steps_ranges,scale_factors):
         step_ranges = create_ranges(256, range_size)
@@ -574,9 +634,283 @@ def create_unary_images(infile):
                             out_img[x*scale_factor[0]+i, y*scale_factor[1]+j] = get_pixel_from_label(labels[range_index][i*scale_factor[0] + j])
 
         # Save the grayscale image
-        out_file_name = 'ncaieee_ext/' + infile_name + f'_gs_{n_colors}c_inc.png'
+        out_file_name = root_dir + '/' + infile_name + f'_gs_{n_colors}c_inc.png'
         print(f'save image: {out_file_name}')
         cv2.imwrite(out_file_name, out_img)
+
+
+def ncaieee_rgb_games(infile):
+#    create_single_rgb_slide(infile, color)
+    infile_name = Path(infile).stem
+
+    # create_unary_images_no_inc - Operate on the original image and creates image of the original size
+    # create_unary_images_no_inc('ncaieee_ext/' + infile_name + '_gr_r.png', root_dir='ncaieee_rgb_games')
+    # create_unary_images_no_inc('ncaieee_ext/' + infile_name + '_gr_g.png', root_dir='ncaieee_rgb_games')
+    # create_unary_images_no_inc('ncaieee_ext/' + infile_name + '_gr_b.png', root_dir='ncaieee_rgb_games')
+
+    # create_unary_images - Creates increased image - each original pixel is replaced by the unary label
+    # create_unary_images('ncaieee_ext/' + infile_name + '_gr_r.png', root_dir='ncaieee_rgb_games')
+    # create_unary_images('ncaieee_ext/' + infile_name + '_gr_g.png', root_dir='ncaieee_rgb_games')
+    # create_unary_images('ncaieee_ext/' + infile_name + '_gr_b.png', root_dir='ncaieee_rgb_games')
+
+    # read already split images
+    n_colors = 128
+    in_file_name = 'ncaieee_rgb_games/' + infile_name + '_gr_r' + f'_gs_{n_colors}c_noinc.png'
+    img_r = cv2.imread(in_file_name)
+    in_file_name = 'ncaieee_rgb_games/' + infile_name + '_gr_g' + f'_gs_{n_colors}c_noinc.png'
+    img_g = cv2.imread(in_file_name)
+    in_file_name = 'ncaieee_rgb_games/' + infile_name + '_gr_b' + f'_gs_{n_colors}c_noinc.png'
+    img_b = cv2.imread(in_file_name)
+
+    # Create a new image with only the blue channel
+#    rgb_image_in = cv2.imread(infile)
+#    rgb_image_out = np.zeros_like(rgb_image_in)
+    rgb_image_out = np.zeros_like(img_r)
+    rgb_image_out[:, :, 0] = img_b[:, :, 0]
+    rgb_image_out[:, :, 1] = img_g[:, :, 1]
+    rgb_image_out[:, :, 2] = img_r[:, :, 2]
+
+    # Save or work with the individual channels as needed
+    cv2.imwrite('ncaieee_rgb_games/' + infile_name + f'_combined_{n_colors}_noinc.png', rgb_image_out)
+
+    #cv2.imwrite(infile_name + '_c_r.png', out_img_r)
+    #cv2.imwrite(infile_name + '_c_g.png', out_img_g)
+    #cv2.imwrite(infile_name + '_c_b.png', out_img_b)
+    # Extract the R, G, and B channels
+    #img_b = img_rgb[:, :, 0]
+    #img_g = img_rgb[:, :, 1]
+    #img_r = img_rgb[:, :, 2]
+
+    # Create a new image with only the blue channel
+    #out_img_r = np.zeros_like(image)
+    #out_img_g = np.zeros_like(image)
+    #out_img_b = np.zeros_like(image)
+#    out_img_r[:, :, 0] = img_r
+#    out_img_g[:, :, 1] = img_g
+#    out_img_b[:, :, 2] = img_b
+    # out_img_b[:, :, 0] = img_rgb[:, :, 0]
+    # out_img_g[:, :, 1] = img_rgb[:, :, 1]
+    # out_img_r[:, :, 2] = img_rgb[:, :, 2]
+    return
+
+# print_orig_and_unary_pixels - Run on the original image and print coordinates, original pixel value, unary label value from the steps_ranges list
+# run on 3 color files
+def print_unary_pixels_rgb(infile, search_range = (200, 255)):
+    print('print_orig_and_unary_pixels')
+    # Load the RGB image
+    rgb_image = cv2.imread(infile)
+    infile_name = Path(infile).stem
+    print(f'print_orig_and_unary_pixels: read input image: {infile}')
+    print(f'print_orig_and_unary_pixels: search_ranges: {search_range}')
+    # Convert to grayscale
+    rgb_grey_image = cv2.cvtColor(rgb_image, cv2.COLOR_BGR2GRAY)
+
+
+    width = rgb_grey_image.shape[0]
+    height = rgb_grey_image.shape[1]
+#    steps_ranges = [2,4,8,16,32,64,128]
+#    steps_ranges = [64,128]
+#    range_size = 32
+#    n_colors = 256//range_size
+    # Cycle through pixels
+    # for x in range(0, int(width)):
+    #     for y in range(0, int(height)):
+    #         if search_range[0] <= rgb_gray_image[x, y] <= search_range[1] and \
+    #             search_range[0] <= rgb_gray_image[x, y] <= search_range[1] and \
+    #             search_range[0] <= rgb_gray_image[x, y] <= search_range[1]:
+    #             # in_range = True
+    #             found_pixel_count += 1
+    #             print(f'XY{x,y}: RGB{rgb_gray_image[x, y], rgb_gray_image[x, y], rgb_gray_image[x, y]}')
+#                        print(f'XY{x,y}: RGB{r_gray_image[x, y], g_gray_image[x, y], b_gray_image[x, y]} -> start, end:{start, end}')
+    rgb_pixels = {}
+    # for x in range(0, int(width)):
+    #     for y in range(0, int(height)):
+    #         if str(rgb_image[x, y]) in rgb_pixels:
+    #             rgb_pixels[str(rgb_image[x, y])] += 1
+    #         else:
+    #             rgb_pixels[str(rgb_image[x, y])] = 1
+    # print(f'rgb_pixels: {rgb_pixels}')
+    for x in range(0, search_range[0], 4):
+        for y in range(0, search_range[1], 4):
+                #print(f'XY{x,y}: RGB_grey{rgb_grey_image[x, y], rgb_grey_image[x, y], rgb_grey_image[x, y]}')
+                # if (rgb_image[x, y,0] > 0 and rgb_image[x, y,0] < 255) or\
+                #       (rgb_image[x, y,1] > 0 and rgb_image[x, y,1] < 255) or\
+                #           (rgb_image[x, y,2] > 0 and rgb_image[x, y,2] < 255):
+                    print(f'XY{x,y}: RGB{str(rgb_image[x, y]),str(rgb_image[x, y+1]),str(rgb_image[x, y+2]),str(rgb_image[x, y+3])}')
+                    print(f'XY{x+1,y}: RGB{str(rgb_image[x+1, y]),str(rgb_image[x+1, y+1]),str(rgb_image[x+1, y+2]),str(rgb_image[x+1, y+3])}')
+                    print(f'XY{x+2,y}: RGB{str(rgb_image[x+2, y]),str(rgb_image[x+2, y+1]),str(rgb_image[x+2, y+2]),str(rgb_image[x+2, y+3])}')
+                    print(f'XY{x+3,y}: RGB{str(rgb_image[x+3, y]),str(rgb_image[x+3, y+1]),str(rgb_image[x+3, y+2]),str(rgb_image[x+3, y+3])}')
+                    print('\n')
+#                    print(f'XY{x,y}: RGB{rgb_image[x, y,0], rgb_image[x, y,1], rgb_image[x, y,2]}')
+
+        # Save the grayscale image
+        # out_file_name = root_dir + '/' + infile_name + f'_gs_{n_colors}c_noinc.png'
+        # print(f'save image: {out_file_name}')
+        # cv2.imwrite(out_file_name, gray_image)
+    #print(f'found_pixel_count: {found_pixel_count}')
+
+
+# randomize_unary_pixels_rgb - Run on the original image and randomize the original pixels layout
+def randomize_unary_pixels_rgb2(infile, step = 4, search_range = (200, 255), root_dir='ncaieee_ext'):
+    print('print_orig_and_unary_pixels')
+    # Load the RGB image
+    rgb_image = cv2.imread(infile)
+    infile_name = Path(infile).stem
+    print(f'randomize_unary_pixels_rgb: read input image: {infile}')
+    print(f'randomize_unary_pixels_rgb: search_ranges: {search_range}')
+    # Convert to grayscale
+    #rgb_grey_image = cv2.cvtColor(rgb_image, cv2.COLOR_BGR2GRAY)
+
+    # Save or work with the individual channels as needed
+#    cv2.imwrite('ncaieee_rgb_games/' + infile_name + f'_combined_{step}c_inc_rand.png', rgb_image_out)
+
+    rgb_image_out = np.zeros_like(rgb_image)
+    width = 16
+    height = 16
+    rgb_image_out[:, :, :] = rgb_image[:, :, :]
+    for x in range(0, width, step):
+        for y in range(0, height, step):
+            # Randomize pixels in the unary box - independently for every color
+            # Generate random indices for x and y
+            random_x = np.random.permutation(step) + x
+            random_y = np.random.permutation(step) + y
+            # random_x = x
+            # random_y = y
+
+            # Swap the pixels in rgb_image and rgb_image_out
+#            rgb_image_out[random_x, random_y, :] = rgb_image[x, y, :]
+            # Working copy
+            # rgb_image_out[x:x+step, y:y+step, :] = rgb_image[x:x+step, y:y+step, :]
+            seq_count = 0
+            for ii in range(step):
+                for jj in range(step):
+                    # Generate random indices within the step for swapping
+                    rand_x = np.random.randint(x+ii, min(x + step, width))
+                    rand_y = np.random.randint(y+jj, min(y + step, height))
+                    print(f'rand_x: {rand_x}, rand_y: {rand_y}')
+                    # Swap values between rgb_image and rgb_image_out at random indices
+                    print(f'Before: XY{x+ii, y+jj}: RGB{str(rgb_image_out[x+ii, y+jj,:]),str(rgb_image_out[rand_x, rand_y,:])}')
+#                    rgb_image_out[x+ii, y+jj,:], rgb_image_out[rand_x, rand_y,:] = (rgb_image_out[rand_x, rand_y,:], rgb_image_out[x+ii, y+jj,:]
+                    temp = (rgb_image_out[x+ii, y+jj,:]).copy()
+                    rgb_image_out[x+ii, y+jj,:] = rgb_image_out[rand_x, rand_y,:]
+                    rgb_image_out[rand_x, rand_y,:] = temp
+                    print(f'After: XY{x+ii, y+jj}: RGB{str(rgb_image_out[x+ii, y+jj,:]),str(rgb_image_out[rand_x, rand_y,:])}')
+
+                    #rgb_image_out[ii, jj, :] = rgb_image[seq_count, seq_count, :]
+                    #seq_count = +1
+            # print(f'random_x: {random_x}, random_y: {random_y}')
+            # print(f' shape rgb_image: {rgb_image[x:x+step, y:y+step, :].shape}, shape rgb_image_out_dif_col: {rgb_image_out[random_x, random_y, :].shape}')
+            # rgb_image_out[random_x, random_y, :] = rgb_image[x:x+step, y:y+step, :]
+            # if not np.array_equal(rgb_image[x, y, :], [0, 0, 0]):
+            #     print(f'XY{x,y}: RGB{str(rgb_image_out[x, y,:]),str(rgb_image[x, y,:])}')
+
+
+#            print(f'XY{x,y}: RGB{str(rgb_image_out[x, y,:]),str(rgb_image[x, y,:])}')
+
+def randomize_unary_pixels_rgb_rand(infile, step = 4, search_range = (200, 255), root_dir='ncaieee_ext'):
+    print('randomize_unary_pixels_rgb_rand')
+    # Load the RGB image
+    rgb_image = cv2.imread(infile)
+    infile_name = Path(infile).stem
+    print(f'randomize_unary_pixels_rgb_rand: read input image: {infile}')
+    print(f'randomize_unary_pixels_rgb_rand: search_ranges: {search_range}')
+
+    rgb_image_out = np.zeros_like(rgb_image)
+    width = rgb_image_out.shape[0]
+    height = rgb_image_out.shape[1]
+    rgb_image_out[:, :, :] = rgb_image[:, :, :]
+    for x in range(0, width, step):
+        for y in range(0, height, step):
+            for ii in range(step):
+                for jj in range(step):
+                    # Generate random indices within the step for swapping
+                    rand_x = np.random.randint(x+ii, min(x + step, width))
+                    rand_y = np.random.randint(y+jj, min(y + step, height))
+#                    print(f'rand_x: {rand_x}, rand_y: {rand_y}')
+                    # Swap values between rgb_image and rgb_image_out at random indices
+#                    print(f'Before: XY{x+ii, y+jj}: RGB{str(rgb_image_out[x+ii, y+jj,:]),str(rgb_image_out[rand_x, rand_y,:])}')
+                    temp = (rgb_image_out[x+ii, y+jj,:]).copy()
+                    rgb_image_out[x+ii, y+jj,:] = rgb_image_out[rand_x, rand_y,:]
+                    rgb_image_out[rand_x, rand_y,:] = temp
+#                    print(f'After: XY{x+ii, y+jj}: RGB{str(rgb_image_out[x+ii, y+jj,:]),str(rgb_image_out[rand_x, rand_y,:])}')
+
+            # Working copy
+#            rgb_image_out[x:x+step, y:y+step, :] = rgb_image[x:x+step, y:y+step, :]
+
+    # Save the new image
+    out_file_name = root_dir + '/' + infile_name + f'_combined_{step}c_inc_rand.png'
+    print(f'save image: {out_file_name}')
+    cv2.imwrite(out_file_name, rgb_image_out)
+
+
+    # print pixels in search_range
+    for x in range(0, search_range[0], step):
+        for y in range(0, search_range[1], step):
+            print(f'XY{x,y}: RGB{str(rgb_image_out[x, y]),str(rgb_image_out[x, y+1]),str(rgb_image_out[x, y+2]),str(rgb_image_out[x, y+3])}')
+            print(f'XY{x+1,y}: RGB{str(rgb_image_out[x+1, y]),str(rgb_image_out[x+1, y+1]),str(rgb_image_out[x+1, y+2]),str(rgb_image_out[x+1, y+3])}')
+            print(f'XY{x+2,y}: RGB{str(rgb_image_out[x+2, y]),str(rgb_image_out[x+2, y+1]),str(rgb_image_out[x+2, y+2]),str(rgb_image_out[x+2, y+3])}')
+            print(f'XY{x+3,y}: RGB{str(rgb_image_out[x+3, y]),str(rgb_image_out[x+3, y+1]),str(rgb_image_out[x+3, y+2]),str(rgb_image_out[x+3, y+3])}')
+            print('\n')
+#                    print(f'XY{x,y}: RGB{rgb_image[x, y,0], rgb_image[x, y,1], rgb_image[x, y,2]}')
+
+
+def randomize_unary_pixels_rgb_rand_dif_col(infile, step = 4, search_range = (200, 255), root_dir='ncaieee_ext'):
+    print('randomize_unary_pixels_rgb_rand_dif_col')
+    # Load the RGB image
+    rgb_image = cv2.imread(infile)
+    infile_name = Path(infile).stem
+    print(f'randomize_unary_pixels_rgb_rand_dif_col: read input image: {infile}')
+    print(f'randomize_unary_pixels_rgb_rand_dif_col: search_ranges: {search_range}')
+
+    rgb_image_out_dif_col = np.zeros_like(rgb_image)
+    width = rgb_image_out_dif_col.shape[0]
+    height = rgb_image_out_dif_col.shape[1]
+    rgb_image_out_dif_col[:, :, :] = rgb_image[:, :, :]
+    for x in range(0, width, step):
+        for y in range(0, height, step):
+            # Randomize pixels in the unary box - independently for every color
+            # Generate random indices for x and y
+            for ii in range(step):
+                for jj in range(step):
+                    # Generate random indices within the step for swapping
+                    rand_x = np.random.randint(x+ii, min(x + step, width))
+                    rand_y = np.random.randint(y+jj, min(y + step, height))
+#                    print(f'rand_x: {rand_x}, rand_y: {rand_y}')
+                    # Swap values between rgb_image and rgb_image_out at random indices
+#                    print(f'Before: XY{x+ii, y+jj}: RGB{str(rgb_image_out[x+ii, y+jj,:]),str(rgb_image_out[rand_x, rand_y,:])}')
+#                    rgb_image_out[x+ii, y+jj,:], rgb_image_out[rand_x, rand_y,:] = (rgb_image_out[rand_x, rand_y,:], rgb_image_out[x+ii, y+jj,:]
+                    for z in range(3):
+                        # random_x = np.random.permutation(step) + x
+                        # random_y = np.random.permutation(step) + y
+                        random_x = x
+                        random_y = y
+                        rand_x = np.random.randint(x+ii, min(x + step, width))
+                        rand_y = np.random.randint(y+jj, min(y + step, height))
+                        # Swap the pixels in rgb_image and rgb_image_out
+                        # print(f'shape rgb_image_out_dif_col: {rgb_image_out_dif_col[random_x, random_y, i]}, shape rgb_image: {rgb_image[x:x+step, y:y+step, i]}')
+                        temp = (rgb_image_out_dif_col[x+ii, y+jj,z]).copy()
+                        rgb_image_out_dif_col[x+ii, y+jj,z] = rgb_image_out_dif_col[rand_x, rand_y,z]
+                        rgb_image_out_dif_col[rand_x, rand_y,z] = temp
+
+        #                rgb_image_out[x:x+step, y:y+step, i] = rgb_image[x:x+step, y:y+step, i]
+#                        rgb_image_out_dif_col[random_x, random_y, i] = rgb_image[x, y, i]
+
+    # Save the new image
+    out_file_name = root_dir + '/' + infile_name + f'_combined_{step}c_inc_rand_dif_col.png'
+    print(f'save image: {out_file_name}')
+    cv2.imwrite(out_file_name, rgb_image_out_dif_col)
+
+    # print pixels in search_range
+    for x in range(0, search_range[0], step):
+        for y in range(0, search_range[1], step):
+            print(f'XY{x,y}: RGB{str(rgb_image_out_dif_col[x, y]),str(rgb_image_out_dif_col[x, y+1]),str(rgb_image_out_dif_col[x, y+2]),str(rgb_image_out_dif_col[x, y+3])}')
+            print(f'XY{x+1,y}: RGB{str(rgb_image_out_dif_col[x+1, y]),str(rgb_image_out_dif_col[x+1, y+1]),str(rgb_image_out_dif_col[x+1, y+2]),str(rgb_image_out_dif_col[x+1, y+3])}')
+            print(f'XY{x+2,y}: RGB{str(rgb_image_out_dif_col[x+2, y]),str(rgb_image_out_dif_col[x+2, y+1]),str(rgb_image_out_dif_col[x+2, y+2]),str(rgb_image_out_dif_col[x+2, y+3])}')
+            print(f'XY{x+3,y}: RGB{str(rgb_image_out_dif_col[x+3, y]),str(rgb_image_out_dif_col[x+3, y+1]),str(rgb_image_out_dif_col[x+3, y+2]),str(rgb_image_out_dif_col[x+3, y+3])}')
+            print('\n')
+#                    print(f'XY{x,y}: RGB{rgb_image[x, y,0], rgb_image[x, y,1], rgb_image[x, y,2]}')
+
+    #print(f'found_pixel_count: {found_pixel_count}')
 
 if __name__ == '__main__':
     infile = './Images/Lenna.png'
@@ -584,7 +918,8 @@ if __name__ == '__main__':
     parse the arguments and parse the topology file
     """
     parser = argparse.ArgumentParser(prog='PROG', description='Images manipulation utility')
-    parser.add_argument('-i', dest='i', help='The input image', required=True, default=False)
+#    parser.add_argument('-i', dest='i', help='The input image', required=True, default=False)
+    parser.add_argument('-i', dest='i', help='The input image', default=infile)
     args = parser.parse_args()
 
     infile = str(args.i)
@@ -609,10 +944,33 @@ if __name__ == '__main__':
 
     #add_random_noise_img(infile)
     # create_unary_images(infile)
-    create_unary_images(infile)
+
+#    create_unary_images(infile)
+
+#    ncaieee_rgb_games(infile)
 
 #    ves_games(infile)
 
+    # 31.10.2023
+#    infile = './Lenna_combined_16.png'
+#    print_unary_pixels_rgb(infile, search_range = (200, 255))
+
+
+    # 03.11.2023
+    infile = './Lenna_combined_64.png'
+    #randomize_unary_pixels_rgb_rand(infile, step = 4, search_range = (16, 16), root_dir='ncaieee_ext')
+    randomize_unary_pixels_rgb_rand_dif_col(infile, step = 8, search_range = (4, 4), root_dir='ncaieee_ext')
+
+    # print_orig_and_unary_pixels - Run on the original image and print coordinates, original pixel value, unary label value from the steps_ranges list
+    # run on 3 color files
+    # default parameters: search_range = (200, 255), steps_ranges = [4,64]):
+#     infile_name = Path(infile).stem
+#     r_infile = 'ncaieee_ext/' + infile_name + '_gr_r.png'
+#     g_infile = 'ncaieee_ext/' + infile_name + '_gr_g.png'
+#     b_infile = 'ncaieee_ext/' + infile_name + '_gr_b.png'
+#     search_range = (220, 255)
+# #    search_range = (0, 60)
+#     print_orig_and_unary_pixels(r_infile, g_infile, b_infile, search_range, steps_ranges = [64])
     #create_rgb_slide(infile)
 #    create_gby_image(infile)
 #    create_gby_slide(infile)

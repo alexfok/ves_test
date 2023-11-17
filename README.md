@@ -4,6 +4,26 @@ duplicate encrypt function
 create 3 images from RGB - R,G,B
 print images
 
+print_orig_and_unary_pixels: search_ranges: (220, 255), steps_ranges: [64]
+range_size: 64
+XY(272, 117): RGB(251, 245, 224) -> 255
+found_pixel_count: 1
+
+print_orig_and_unary_pixels: search_ranges: (0, 60), steps_ranges: [64]
+range_size: 64
+XY(71, 508): RGB(59, 4, 43) -> 63
+XY(185, 281): RGB(59, 12, 59) -> 63
+XY(189, 275): RGB(60, 8, 60) -> 63
+XY(191, 274): RGB(59, 9, 59) -> 63
+XY(197, 265): RGB(56, 4, 60) -> 63
+XY(198, 264): RGB(59, 3, 55) -> 63
+XY(198, 266): RGB(59, 14, 60) -> 63
+XY(329, 155): RGB(60, 6, 53) -> 63
+XY(344, 147): RGB(60, 11, 54) -> 63
+XY(433, 183): RGB(59, 7, 58) -> 63
+XY(498, 142): RGB(59, 10, 59) -> 63
+found_pixel_count: 11
+
 # python ncaieee_ext.py -i ./Images/Lenna.png
 create_unary_images
 create_unary_labels: n_labels: 16
