@@ -10,6 +10,12 @@ import sys
 from random import SystemRandom
 import argparse
 from pathlib import Path
+import itertools
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.ticker as mtick
+import time
+import csv
 
 random = SystemRandom()
 # If you want to use the more powerful PyCrypto (pip install pycrypto) then uncomment the next line and comment out the previous two lines
@@ -19,7 +25,10 @@ img_filename_bw = ""
 cimg_filename_bw = ""
 slide_filename_A = ""
 slide_filename_B = ""
-base_out_dir = "ncaieee_ext/"
+base_out_dir = "./2025/out_images/"
+slides_dir = "./2025/slides/"
+results_dir = "./2025/results/"
+_DEBUG = False
 #    base_out_dir = "out_images/"
 
 def printImage(infile):
@@ -40,71 +49,220 @@ def printImage(infile):
         print("{}\n".format(pixels[i * width:(i + 1) * width]))
 
 
+def recover_image_compare_orig_count(infile, slide_filenames, b_num = 2, b_pixels_to_flip = 100, m=1, k_threshold=2, rand=False):
+    # Read and convert original image
+    orig_img = Image.open(infile)
+    # print(f"Original image mode before conversion: {orig_img.mode}")
+    
+    orig_img = orig_img.convert('1')  # convert to 1 bit
+    # print(f"Image mode after conversion: {orig_img.mode}")
+    
+    orig_arr = np.array(orig_img)
+    
+    # Count black and white pixels in original image
+    orig_total = orig_arr.size
+    # In mode '1', True represents white (255) and False represents black (0)
+    orig_white = np.sum(orig_arr)  # Count True values (white pixels)
+    orig_black = orig_total - orig_white  # Count False values (black pixels)
+    print(f"Original Image: total={orig_total}, black={orig_black} ({orig_black/orig_total:.2%}), white={orig_white} ({orig_white/orig_total:.2%})")
+    
+    # Debug: Print unique values in the array
+    # unique_values = np.unique(orig_arr)
+    # print(f"Unique values in array: {unique_values}")
+    
+    # Open all slides
+    slide_images = []
+    for slide_filename in slide_filenames:
+        slide_images.append(Image.open(slide_filename + ".png"))
 
-def recover_compared_image_count(infile, cinfile, slide_filename_A, slide_filename_B, ext):
+    # Get dimensions from first slide (accounting for m×m mapping)
+    width = slide_images[0].size[0] // m
+    height = slide_images[0].size[1] // m
+    recovered_image = Image.new('1', (width, height))
+
+    n_slides = len(slide_images)
+    # k = (n_slides + 1) // 2  # threshold for number of black pixels, rounded up
+    k = k_threshold  # threshold for number of black pixels, rounded up
+
+    # Select byzantine slides once at the start
+    byzantine_slides = set(random.sample(range(len(slide_images)), b_num))  # Randomly select b_num slides to be byzantine
+    pixels_flipped = [0] * len(slide_images)  # Counter for flipped pixels per slide
+
+    # Debug counters
+    total_pixels = 0
+    black_pixels = 0
+    white_pixels = 0
+    flipped_pixels = 0  # Counter for actually flipped pixels
+
+    # Cycle through pixels (original image coordinates)
+    # Pre-generate random coordinates for flipping if rand is True
+    flip_coords = {}
+    if rand:
+        # Generate all possible coordinates
+        all_coords = [(x, y) for x in range(width) for y in range(height)]
+        # Use set for fast lookup
+        flip_coords = {i: set(random.sample(all_coords, b_pixels_to_flip)) for i in byzantine_slides}
+
+    start_time = time.time()
+    for x in xrange(0, width):
+        if x % 50 == 0:
+            print(f"Processing row {x}/{width} ({100*x/width:.1f}%)")
+        for y in xrange(0, height):
+            # Get pixel values from all slides (considering m×m mapping)
+            black_positions = set()  # Track positions of black subpixels across slides
+            per_slide_positions = []  # For debug: store black subpixel position for each slide
+            for i, slide in enumerate(slide_images):
+                # Simulate byzantine effect in memory, do not modify slide images
+                is_byzantine = i in byzantine_slides and pixels_flipped[i] < b_pixels_to_flip
+                if is_byzantine:
+                    if rand:
+                        if (x, y) in flip_coords[i]:
+                            for mx in range(m):
+                                for my in range(m):
+                                    black_positions.add((mx, my))
+                            pixels_flipped[i] += 1
+                            flipped_pixels += 1
+                            continue  # Skip reading from the actual slide
+                    else:
+                        for mx in range(m):
+                            for my in range(m):
+                                black_positions.add((mx, my))
+                        pixels_flipped[i] += 1
+                        flipped_pixels += 1
+                        continue  # Skip reading from the actual slide
+                found = False
+                for mx in range(m):
+                    for my in range(m):
+                        if slide.getpixel((x * m + mx, y * m + my)) == 0:  # Black pixel
+                            black_positions.add((mx, my))
+                            if not found:
+                                per_slide_positions.append((i, mx, my))
+                                found = True
+
+            # Count black pixels (0 is black, 1 is white)
+            black_count = len(black_positions)
+            total_pixels_slides = len(black_positions)
+            
+            # Debug: Print pixel counts for first few pixels
+            if _DEBUG:
+                if total_pixels < 5:
+                    print(f"Pixel at ({x},{y}): black_count={black_count}, total_pixels={total_pixels_slides}")
+                    print(f"Pixel values: {black_positions}")
+            
+            # Determine recovered pixel value based on threshold
+            recovered_value = 0 if black_count >= k else 1
+            
+            # Update debug counters
+            total_pixels += 1
+            if recovered_value == 0:
+                black_pixels += 1
+            else:
+                white_pixels += 1
+            
+            # Set pixel in recovered image
+            recovered_image.putpixel((x, y), recovered_value)
+
+            if _DEBUG and total_pixels < 10:
+                print(f"Pixel at ({x},{y}):")
+                print(f"  Unique black positions: {sorted(black_positions)}")
+                print(f"  Number of unique black positions: {len(black_positions)}")
+                print(f"  Per-slide black subpixel positions:")
+                for slide_idx, mx, my in per_slide_positions:
+                    print(f"    Slide {slide_idx}: ({mx},{my})")
+
+    elapsed = time.time() - start_time
+    print(f"Recovery loop completed in {elapsed:.2f} seconds")
+
+    # Print debug statistics
+    print(f"\nDebug Statistics:")
+    print(f"Total white pixels (blocks) flipped by byzantine slides: {flipped_pixels}")
+    print(f"White pixels flipped per slide: {pixels_flipped}")
+    print(f"Byzantine slide indices: {sorted(byzantine_slides)}")
+    print(f"Majority threshold k: {k}")
+
+    # # Count black and white pixels in recovered image
+    # recovered_arr = np.array(recovered_image)
+    # # In mode '1', True represents white (1) and False represents black (0)
+    # recovered_total = recovered_arr.size
+    # recovered_white = np.sum(recovered_arr)  # Count True values (white pixels)
+    # recovered_black = recovered_total - recovered_white  # Count False values (black pixels)
+    print(f"Recovered Image: black={black_pixels} ({black_pixels/orig_black:.2%}), white={white_pixels} ({white_pixels/orig_white:.2%})")
+
+    # Save recovered image
+    recovered_image_name = base_out_dir + Path(infile).stem + f'_R_b{b_num}.png'
+    print(f"Recovered image saved as: {recovered_image_name}")
+    recovered_image.save(recovered_image_name, 'PNG')
+    return black_pixels, white_pixels, black_pixels/orig_black, white_pixels/orig_white
+
+
+def recover_compared_image_count(infile, cinfile, slide_filenames, ext):
     ############################
     # Candidate image preparation
     timg = Image.open(infile)
     timg = timg.convert('1')  # convert image to 1 bit
     cimg = Image.open(cinfile)
     cimg = cimg.convert('1')  # convert image to 1 bit
-#    cimg.save(cimg_filename_bw, 'PNG')
-#    print("recover_compared_image: Image size: {}".format(cimg.size))
-#    print("recover_compared_image from slides: {}, {}".format(slide_filename_A, slide_filename_B))
-    # Open slides images
-    slide_filename_1 = slide_filename_A + ext
-    slide_filename_2 = slide_filename_B + ext
-    slide_image_1 = Image.open(slide_filename_1)
-    slide_image_2 = Image.open(slide_filename_2)
 
+    # Open all slides
+    slide_images = []
+    for slide_filename in slide_filenames:
+        slide_filename_full = slide_filename + ext
+        slide_images.append(Image.open(slide_filename_full))
 
-    width = slide_image_1.size[0]
-    height = slide_image_1.size[1]
-    recovered_image = Image.new('1', slide_image_1.size)
+    # Get dimensions from first slide
+    width = slide_images[0].size[0]
+    height = slide_images[0].size[1]
+    recovered_image = Image.new('1', slide_images[0].size)
 
     match_pixel_count = 0
     mismatch_pixel_count = 0
+    n_slides = len(slide_images)
+    k = n_slides // 2  # threshold for number of black subpixels
+
     # Cycle through pixels
     for x in xrange(0, int(width/2)):
         for y in xrange(0, int(height/2)):
-#            pixel1 = slide_image_1.getpixel((x, y))
-#            pixel2 = slide_image_2.getpixel((x, y))
-            # AND candidate and target slide images
-            recovered_image.putpixel((x*2, y*2), slide_image_1.getpixel((x*2, y*2)) & slide_image_2.getpixel((x*2, y*2)))
-            recovered_image.putpixel((x*2+1, y*2), slide_image_1.getpixel((x*2+1, y*2)) & slide_image_2.getpixel((x*2+1, y*2)))
-            recovered_image.putpixel((x*2, y*2+1), slide_image_1.getpixel((x*2, y*2+1)) & slide_image_2.getpixel((x*2, y*2+1)))
-            recovered_image.putpixel((x*2+1, y*2+1), slide_image_1.getpixel((x*2+1, y*2+1)) & slide_image_2.getpixel((x*2+1, y*2+1)))
+            # Get subpixels from all slides
+            subpixels = []
+            for slide in slide_images:
+                # Get all 4 subpixels from this slide
+                subpixels.append(slide.getpixel((x*2, y*2)))
+                subpixels.append(slide.getpixel((x*2+1, y*2)))
+                subpixels.append(slide.getpixel((x*2, y*2+1)))
+                subpixels.append(slide.getpixel((x*2+1, y*2+1)))
 
+            # Count black subpixels (0 is black, 255 is white)
+            black_count = sum(1 for p in subpixels if p == 0)
+            
+            # Determine recovered pixel value based on threshold
+            # If more than k subpixels are black, the recovered pixel should be black
+            recovered_value = 0 if black_count > k else 255
+            
+            # Set all subpixels in recovered image to the same value
+            recovered_image.putpixel((x*2, y*2), recovered_value)
+            recovered_image.putpixel((x*2+1, y*2), recovered_value)
+            recovered_image.putpixel((x*2, y*2+1), recovered_value)
+            recovered_image.putpixel((x*2+1, y*2+1), recovered_value)
 
             timage_pixel_xy = timg.getpixel((x, y))
             cimage_pixel_xy = cimg.getpixel((x, y))
-            pixels_xy = recovered_image.getpixel((x*2, y*2))
-            pixels_x1y = recovered_image.getpixel((x*2+1, y*2))
-            pixels_xy1 = recovered_image.getpixel((x*2, y*2+1))
-            pixels_x1y1 = recovered_image.getpixel((x*2+1, y*2+1))
-            sub_pixel_count = pixels_xy + pixels_x1y + pixels_xy1 + pixels_x1y1
-            # if sub_pixel_count != 0:
-            #     print("\n(x, y) {}, timage_pixel_xy: {}, cimage_pixel_xy: {}".format((x, y), timage_pixel_xy, cimage_pixel_xy))
-            #     print("pixels_xy: {}, pixels_x1y:{}, pixels_xy1: {}, pixels_x1y1: {}".format(pixels_xy, pixels_x1y, pixels_xy1, pixels_x1y1))
-            #     print("sub_pixel_count: {}".format(sub_pixel_count))
+            
             if ext == '_P.png':
                 flag = 'Positive'
-                if cimage_pixel_xy == 255 and sub_pixel_count > 0:
-                    if timage_pixel_xy == 255:
-                        match_pixel_count = match_pixel_count + 1
-                    else:
-                        mismatch_pixel_count = mismatch_pixel_count + 1
+                if cimage_pixel_xy == 255 and recovered_value == 255:
+                    match_pixel_count = match_pixel_count + 1
+                elif cimage_pixel_xy == 0 and recovered_value == 0:
+                    match_pixel_count = match_pixel_count + 1
+                else:
+                    mismatch_pixel_count = mismatch_pixel_count + 1
             if ext == '_N.png':
                 flag = 'Negative'
-#                print("\n(x, y) {}, timage_pixel_xy: {}, cimage_pixel_xy: {}".format((x, y), timage_pixel_xy, cimage_pixel_xy))
-#                print("pixels_xy: {}, pixels_x1y:{}, pixels_xy1: {}, pixels_x1y1: {}".format(pixels_xy, pixels_x1y, pixels_xy1, pixels_x1y1))
-                if cimage_pixel_xy == 0 and sub_pixel_count == 0:
-                    if timage_pixel_xy == 0:
-                        match_pixel_count = match_pixel_count + 1
-                    else:
-                        mismatch_pixel_count = mismatch_pixel_count + 1
-
-
+                if cimage_pixel_xy == 0 and recovered_value == 0:
+                    match_pixel_count = match_pixel_count + 1
+                elif cimage_pixel_xy == 255 and recovered_value == 255:
+                    match_pixel_count = match_pixel_count + 1
+                else:
+                    mismatch_pixel_count = mismatch_pixel_count + 1
 
     recovered_image_name = Path(cinfile).stem
     recovered_image_name = base_out_dir + recovered_image_name + '_R' + ext
@@ -155,50 +313,80 @@ def recover_compared_image(cinfile, slide_filename_A, slide_filename_B, ext):
     recovered_image.save(recovered_image_name, 'PNG')
     return
 
-def encryptImage(infile):
+def encryptImage(infile, n_slides=2, m=1):
     img = Image.open(infile)
-
     img = img.convert('1')  # convert image to 1 bit
     img.save(img_filename_bw, 'PNG')
-
     print("encryptImage: Target Image size: {}".format(img.size))
-    # Prepare two empty slider images for drawing
-    width = img.size[0]*2
-    height = img.size[1]*2
-    print("Slide size{} x {}".format(width, height))
-    slide_image_A = Image.new('1', (width, height))
-    slide_image_B = Image.new('1', (width, height))
-    draw_A = ImageDraw.Draw(slide_image_A)
-    draw_B = ImageDraw.Draw(slide_image_B)
-    # There are 6(4 choose 2) possible patterns
-    patterns = ((1, 1, 0, 0), (1, 0, 1, 0), (1, 0, 0, 1),
-                (0, 1, 1, 0), (0, 1, 0, 1), (0, 0, 1, 1))
-    # Cycle through pixels
-    for x in xrange(0, int(width/2)):
-        for y in xrange(0, int(height/2)):
+    width = img.size[0]  # Use original width
+    height = img.size[1]  # Use original height
+    print("Slide size {} x {}".format(width * m, height * m))
+    
+    # Prepare N empty slide images with m×m mapping
+    slide_images = [Image.new('1', (width * m, height * m)) for _ in range(n_slides)]
+    draws = [ImageDraw.Draw(slide) for slide in slide_images]
+    
+    # For each pixel in the original image
+    for x in xrange(0, width):
+        for y in xrange(0, height):
             pixel = img.getpixel((x, y))
             if type(pixel) == tuple:
                 print("Error: The pixel is RGB, convert it to grey scale before running the encryption".format(infile))
                 exit()
-            pat = random.choice(patterns)
-            # A will always get the pattern
-            draw_A.point((x*2, y*2), pat[0])
-            draw_A.point((x*2+1, y*2), pat[1])
-            draw_A.point((x*2, y*2+1), pat[2])
-            draw_A.point((x*2+1, y*2+1), pat[3])
-            if pixel == 0:  # Dark pixel so B gets the anti pattern
-                draw_B.point((x*2, y*2), 1-pat[0])
-                draw_B.point((x*2+1, y*2), 1-pat[1])
-                draw_B.point((x*2, y*2+1), 1-pat[2])
-                draw_B.point((x*2+1, y*2+1), 1-pat[3])
-            else:
-                draw_B.point((x*2, y*2), pat[0])
-                draw_B.point((x*2+1, y*2), pat[1])
-                draw_B.point((x*2, y*2+1), pat[2])
-                draw_B.point((x*2+1, y*2+1), pat[3])
-
-    slide_image_A.save(slide_filename_A + ".png", 'PNG')
-    slide_image_B.save(slide_filename_B + ".png", 'PNG')
+            
+            # For black pixels: assign one black subpixel to different positions for each slide
+            # For white pixels: assign one black subpixel to the same position for all slides
+            if pixel == 0:  # Black pixel
+                # Create a list of all possible positions in the m×m block
+                positions = [(mx, my) for mx in range(m) for my in range(m)]
+                # Shuffle positions to randomize which position gets the black subpixel
+                random.shuffle(positions)
+                
+                # Assign one black subpixel to a different position for each slide
+                for i, draw in enumerate(draws):
+                    # Get the position for this slide (cycle through positions if more slides than positions)
+                    pos_idx = i % len(positions)
+                    mx, my = positions[pos_idx]
+                    
+                    # Set all subpixels to white first
+                    for px in range(m):
+                        for py in range(m):
+                            draw.point((x * m + px, y * m + py), 255)
+                    
+                    # Set the chosen position to black
+                    draw.point((x * m + mx, y * m + my), 0)
+            else:  # White pixel
+                # Choose one random position for the black subpixel
+                mx = random.randint(0, m-1)
+                my = random.randint(0, m-1)
+                
+                # Assign the same position to all slides
+                for i, draw in enumerate(draws):
+                    # Set all subpixels to white first
+                    for px in range(m):
+                        for py in range(m):
+                            draw.point((x * m + px, y * m + py), 255)
+                    
+                    # Set the chosen position to black
+                    draw.point((x * m + mx, y * m + my), 0)
+            
+            # Debug: Print subpixel values for first few pixels
+            if _DEBUG:
+                if x < 5 and y < 5:
+                    print(f"Original pixel at ({x},{y}): {pixel}")
+                    if pixel == 0:
+                        print("Black pixel - Different positions per slide")
+                    else:
+                        print(f"White pixel - Same position ({mx},{my}) for all slides")
+    
+    # Save all slides
+    # Remove all PNG files from target directory
+    for file in os.listdir(slides_dir):
+        if file.endswith('.png'):
+            os.remove(os.path.join(slides_dir, file))
+    for i, slide in enumerate(slide_images):
+        print(f"Saved slide {i}: {slides_dir}{Path(infile).stem}_slide{i}.png")
+        slide.save(f"{slides_dir}{Path(infile).stem}_slide{i}.png", 'PNG')
 
 def and_images(cinfile, slide_filename):
     ############################
@@ -313,6 +501,46 @@ def encryptImageCol(infile):
     slide_image_A.save(slide_filename_A + ".png", 'PNG')
     slide_image_B.save(slide_filename_B + ".png", 'PNG')
 
+def plot_byzantine_results(results, base_out_dir):
+    """
+    Plot the effect of Byzantine participants on white pixels recovery.
+    
+    Args:
+        results (list): List of tuples containing (b_num, b_pixels, white_percentage)
+        base_out_dir (str): Directory to save the plot
+    """
+    # Extract data for plotting
+    x_values = [f"{b_num}" for b_num, _, _ in results]
+    y_values = [white_percentage for _, _, white_percentage in results]
+    
+    print(f'x_values: {x_values} x_values lenght: {len(x_values)}')
+    print(f'y_values: {y_values} y_values lenght: {len(y_values)}')
+    print(f'results: {results} results lenght: {len(results)}')
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(x_values, y_values, 'bo-')
+    plt.xlabel('Number of Byzantine Participants')
+    plt.ylabel('White Pixel Percentage')
+    plt.title(f'Effect of Byzantine Participants on White Pixels Recovery (b_pixels={results[0][1]})')
+    plt.grid(True)
+    
+    # Add text labels for white pixel percentages with increased visibility
+    for i, white_percentage in enumerate(y_values):
+        plt.text(i + 0.2, white_percentage + 0.0007, f'{white_percentage:.2%}', 
+                ha='center', va='bottom', fontsize=10, 
+                bbox=dict(facecolor='white', alpha=0.7, edgecolor='none', pad=1))
+    
+    # Add red horizontal line at y=y_values[0]
+    plt.axhline(y=y_values[0], color='r', linestyle='-', alpha=0.5)
+    
+    plt.legend()
+    # Format y-axis as percentages with one decimal place
+    plt.gca().yaxis.set_major_formatter(mtick.PercentFormatter(xmax=1, decimals=1))
+    plt.tight_layout()
+#    plt.ylim(bottom=0)
+    plt.xlim(left=0)
+    plt.savefig(f"{base_out_dir}byzantine_effect.png")
+    plt.close()
 def main():
     global img_filename_bw
     global cimg_filename_bw
@@ -324,33 +552,44 @@ def main():
     """
     parser = argparse.ArgumentParser(prog='PROG', description='Images manipulation utility')
     parser.add_argument('-t', dest='t', help='The image to be split', required=True, default=False)
-    parser.add_argument('-c', dest='c', help="The image to compare", required=True, default=False)
+    parser.add_argument('-c', dest='c', help="The image to compare", default=None)
     parser.add_argument('-enc', action='store_true', help='Perform image encryption, default - use existing slides')
     parser.add_argument('-pix', action='store_true', help='Print binary images, default - do not print')
     parser.add_argument('-encc', action='store_true', help='Perform color image encryption')
+    parser.add_argument('--nslides', type=int, default=2, help='Number of slides to generate (default: 2)')
+    parser.add_argument('--comp1', action='store_true', help='Compare original and recovered images with detailed pixel statistics')
+    parser.add_argument('--b_num', type=lambda x: [int(i) for i in x.split(',')], default=[2], help='List of numbers of byzantine slides (default: [2])')
+    parser.add_argument('--b_pixels', type=int, default=512*512, help='Number of pixels to flip in byzantine slides (default: 512*512)')
+    parser.add_argument('--m', type=int, default=1, help='Mapping factor for pixel expansion (default: 1)')
+    parser.add_argument('--k', type=int, default=2, help='Threshold for number of black pixels (default: 2)')
+    parser.add_argument('--rand', action='store_true', help='Use random selection for byzantine slides (default: False)')
+    parser.add_argument('--plot_results', action='store_true', help='Plot saved results')
+    parser.add_argument('--plot_combined_results', action='store_true', help='Plot combined results')
     args = parser.parse_args()
 
     infile = str(args.t)
-    cinfile = str(args.c)
+    cinfile = str(args.c) if args.c is not None else None
+    n_slides = args.nslides
+    m = args.m  # Get the mapping factor
     if not os.path.isfile(infile):
         print("File {} does not exist.".format(infile))
         exit()
-    if not os.path.isfile(cinfile):
+    if cinfile and not os.path.isfile(cinfile):
         print("File {} does not exist.".format(cinfile))
         exit()
 
     # Set output file names
     f, e = os.path.splitext(infile)
-#    print("f:{}".format(f))
     f = Path(infile).stem
-#    print("f:{}".format(f))ncaieee_ext
     img_filename_bw = base_out_dir + f + "_bw.png"
-    slide_filename_A = base_out_dir + f + "_slideA"
-    slide_filename_B = base_out_dir + f + "_slideB"
+    
+    # Generate slide filenames for N slides
+    slide_filenames = [slides_dir + f + f"_slide{i}" for i in range(n_slides)]
 
-    f, e = os.path.splitext(cinfile)
-    f = Path(cinfile).stem
-    cimg_filename_bw = base_out_dir + f + "_bw_C.png"
+    if cinfile:
+        f, e = os.path.splitext(cinfile)
+        f = Path(cinfile).stem
+        cimg_filename_bw = base_out_dir + f + "_bw_C.png"
 
     if args.encc:
         print("Going to encrypt image: {}".format(infile))
@@ -365,25 +604,119 @@ def main():
         print("Print Imagaes Done.")
 
     if args.enc:
-        print("Going to encrypt image: {}".format(infile))
-        encryptImage(infile)
+        print(f"Going to encrypt image: {infile} with {n_slides} slides and m={m}")
+        encryptImage(infile, n_slides=n_slides, m=m)
         print("Encryption Done.")
 
-    # if args.and:
-    # #(args.t is None or args.c is None)
-    print("Going to compare images {}, {}".format(infile, cinfile))
-    print("Going to AND images")
-    and_images(cinfile, slide_filename_A)
-    and_images(cinfile, slide_filename_B)
-    save_negative_image(cinfile)
-    print("AND images Done.")
+    if cinfile:
+        print("Going to compare images {}, {}".format(infile, cinfile))
+        print("Going to AND images")
+        for slide_filename in slide_filenames:
+            and_images(cinfile, slide_filename)
+        save_negative_image(cinfile)
+        print("AND images Done.")
 
-#    if args.rec:
-    print("Going to recover and compare images")
-    recover_compared_image_count(infile, cinfile, slide_filename_A, slide_filename_B, '_P.png')
-    recover_compared_image_count(infile, cinfile, slide_filename_A, slide_filename_B, '_N.png')
+    if args.comp1:
+        print("\nPerforming detailed comparison of original and recovered images:")
+        # Compare original and recovered images with detailed pixel statistics
+        # Create list of tuples for different b_num and b_pixels combinations
+        byzantine_configs = [(b_num, args.b_pixels) for b_num in args.b_num]
+        
+        # Store results for plotting
+        results = []
+        
+        # Always test the original (no byzantine)
+        # black_pixels, white_pixels, black_percentage, white_percentage = recover_image_compare_orig_count(
+        #     infile, slide_filenames, b_num=0, b_pixels_to_flip=0, m=m, k_threshold=args.k, rand=args.rand)
+        # results.append((0, 0, black_percentage))
+        # print("Original image (no byzantine) - Black pixels: {:.2%}".format(black_percentage))
+        # Run recovery for each configuration
+        for b_num, b_pixels in byzantine_configs:
+            print(f"\nTesting with b_num={b_num}, b_pixels={b_pixels}")
+            black_pixels, white_pixels, black_percentage, white_percentage = recover_image_compare_orig_count(
+                infile, slide_filenames, b_num=b_num, b_pixels_to_flip=b_pixels, m=m, k_threshold=args.k, rand=args.rand)
+            
+            results.append((b_num, b_pixels, white_percentage))
+
+        # Save results to a CSV file if --save_results flag is set
+        # Create results directory if it doesn't exist
+        os.makedirs(results_dir, exist_ok=True)
+        
+        # Write results to CSV
+        results_file = f"{results_dir}byzantine_results_{args.b_pixels}.csv"
+        with open(results_file, 'w', newline='') as f:
+            writer = csv.writer(f)
+            # Write header
+            writer.writerow(['b_num', 'b_pixels', 'white_percentage', 'black_percentage', 'm', 'k', 'rand'])
+            # Write data rows
+            for b_num, b_pixels, white_percentage in results:
+                writer.writerow([b_num, b_pixels, white_percentage, 1-white_percentage, m, args.k, args.rand])
+        
+        print(f"\nResults saved to: {results_file}")
+        plot_byzantine_results(results, base_out_dir)
+        # Call the plotting function
+    if args.plot_results:
+        # Load results from CSV file
+        results_file = f"{results_dir}byzantine_results_{args.b_pixels}.csv"
+        results = []
+        with open(results_file, 'r') as f:
+            reader = csv.reader(f)
+            next(reader)  # Skip header row
+            for row in reader:
+                b_num = int(row[0])
+                b_pixels = int(row[1])
+                white_percentage = float(row[2])
+                results.append((b_num, b_pixels, white_percentage))
+        plot_byzantine_results(results, base_out_dir)
+    if args.plot_combined_results:
+        # Get all CSV files from results directory
+        csv_files = [f for f in os.listdir(results_dir) if f.endswith('.csv')]
+        
+        # Create figure for plotting
+        plt.figure(figsize=(10, 6))
+        
+        # Process each CSV file
+        for csv_file in csv_files:
+            # Extract b_pixels from filename
+            b_pixels = csv_file.split('_')[-1].split('.')[0]
+            
+            # Load results from CSV file
+            results = []
+            with open(os.path.join(results_dir, csv_file), 'r') as f:
+                reader = csv.reader(f)
+                next(reader)  # Skip header row
+                for row in reader:
+                    b_num = int(row[0])
+                    b_pixels = int(row[1])
+                    white_percentage = float(row[2])
+                    results.append((b_num, b_pixels, white_percentage))
+            
+            # Extract data for plotting
+            x_values = [str(r[0]) for r in results]
+            y_values = [r[2] for r in results]
+            
+            # Plot with label
+            plt.plot(x_values, y_values, marker='o', label=f'b_pixels={b_pixels}')
+        
+        # Customize plot
+        plt.title('Byzantine Recovery Results')
+        plt.xlabel('Number of Byzantine Slides')
+        plt.ylabel('White Pixel Recovery Percentage')
+        plt.grid(True)
+        plt.legend()
+        
+        # Format y-axis as percentage
+        plt.gca().yaxis.set_major_formatter(mtick.PercentFormatter(1.0))
+        
+        # Save plot
+        plot_filename = os.path.join(base_out_dir, 'byzantine_results_combined.png')
+        plt.savefig(plot_filename)
+        plt.close()
+        
+        print(f"Combined plot saved as: {plot_filename}")
+
     print("recover and compare images Done.")
-    
+    print("Compare original and recovered images Done.")
     print("Done.")
 
 if __name__ == '__main__':

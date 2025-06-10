@@ -66,18 +66,18 @@ def create_gby_slide(infile):
     img2.save(outfile, 'PNG')
 #    printImage(outfile)
     return
-
-def create_gby_image(infile):
+def create_gby_image_cv2(infile):
     ############################
     # Candidate image preparation
-    img = Image.open(infile)
+    # img = Image.open(infile)
+    img = cv2.imread(infile)
+
     img = img.convert('1')  # convert image to 1 bit
 #    infile_img.save(cimg_filename_bw, 'PNG')
 #    print("save_negative_image: Candidate Image size: {}".format(infile_img.size))
 
     infile_name = Path(infile).stem
 #    infile_img_n = Image.new('1', img.size)
-    outfile = infile_name + '_BWVES.png'
 
     width = img.size[0]
     height = img.size[1]
@@ -116,14 +116,77 @@ def create_gby_image(infile):
     print("WXH ({},{}) black_pixels_count: {} white_pixels_count {}".format(width, height, black_pixels_count, white_pixels_count))
     # 262144
 
+#    img2.save(outfile, 'PNG')
+    cv2.imwrite(infile_name + '_BWVES.png', img2)
+
+#    printImage(outfile)
+    return
+
+def create_gby_image(infile, root_dir='./2024'):
+    ############################
+    print(f'create_gby_image: {infile}')
+    # Candidate image preparation
+    img = Image.open(infile)
+
+    img = img.convert('1')  # convert image to 1 bit
+#    infile_img.save(cimg_filename_bw, 'PNG')
+#    print("save_negative_image: Candidate Image size: {}".format(infile_img.size))
+
+    infile_name = Path(infile).stem
+#    infile_img_n = Image.new('1', img.size)
+
+    width = img.size[0]
+    height = img.size[1]
+    # Define the blue color
+    blue_color = (0, 0, 255)  # RGB value for blue
+    green_color = (0, 255, 0)  # RGB value for green
+    yellow_color = (255, 255, 0)  # RGB value for yellow
+    img2 = Image.new(mode="RGB", size=(width, height), color = blue_color)
+    # Define the colors
+#    colors = ["blue", "yellow"]
+    colors = [blue_color, yellow_color]  # Blue and yellow colors
+    black_pixels_count = 0
+    white_pixels_count = 0
+
+    # Cycle through pixels
+    for x in range(0, int(width)):
+        for y in range(0, int(height)):
+            pixel = img.getpixel((x, y))
+            if pixel == 0:
+#                pixels[i, j] = blue_color
+#                print('black pixel: {}'.format(pixel))
+                img2.putpixel((x, y), green_color)
+                black_pixels_count+=1
+            else:
+#                print('white pixel: {}'.format(pixel))
+                # Draw a random color
+                random_color = random.choice(colors)
+#                random_color = blue_color
+                img2.putpixel((x, y), random_color)
+                white_pixels_count+=1
+#            if type(pixel) == tuple:
+#                print(pixel)
+
+            # Negate image pixel
+#            print("Pixels: O:{} N:{}".format(infile_img.getpixel((x, y)), 256 -1 - infile_img.getpixel((x, y))))
+    print("WXH ({},{}) black_pixels_count: {} white_pixels_count {}".format(width, height, black_pixels_count, white_pixels_count))
+    # 262144
+    outfile = root_dir + '/' + infile_name + '_BW.png'
+    print(f'create_gby_image outfile: {outfile}')
+    img.save(outfile, 'PNG')
+    outfile = root_dir + '/' + infile_name + '_BWVES.png'
+    print(f'create_gby_image outfile: {outfile}')
     img2.save(outfile, 'PNG')
+
+#    cv2.imwrite(infile_name + '_BWVES.png', img2)
+
 #    printImage(outfile)
     return
 
 
 ################################
 # RGB slides games
-def create_rgb_slide(infile):
+def create_rgb_slide(infile, root_dir='ncaieee_ext'):
     ############################
     # Candidate image preparation
     #img = Image.open(infile)
@@ -158,12 +221,13 @@ def create_rgb_slide(infile):
     out_img_r[:, :, 2] = img_rgb[:, :, 2]
 
     # Save or work with the individual channels as needed
-    cv2.imwrite(infile_name + '_gr_r.png', img_r)
-    cv2.imwrite(infile_name + '_gr_g.png', img_g)
-    cv2.imwrite(infile_name + '_gr_b.png', img_b)
-    cv2.imwrite(infile_name + '_c_r.png', out_img_r)
-    cv2.imwrite(infile_name + '_c_g.png', out_img_g)
-    cv2.imwrite(infile_name + '_c_b.png', out_img_b)
+    
+    cv2.imwrite(root_dir + '/' + infile_name + '_gr_r.png', img_r)
+    cv2.imwrite(root_dir + '/' + infile_name + '_gr_g.png', img_g)
+    cv2.imwrite(root_dir + '/' + infile_name + '_gr_b.png', img_b)
+    cv2.imwrite(root_dir + '/' + infile_name + '_c_r.png', out_img_r)
+    cv2.imwrite(root_dir + '/' + infile_name + '_c_g.png', out_img_g)
+    cv2.imwrite(root_dir + '/' + infile_name + '_c_b.png', out_img_b)
 
 #    printImage(infile_name + '_gr_r.png')
 #    printImage(infile_name + '_gr_b.png')
@@ -203,14 +267,14 @@ def create_rgb_slide(infile):
     print("WXH ({},{}) black_pixels_count: {} white_pixels_count {}".format(width, height, black_pixels_count, white_pixels_count))
     # 262144
 
-    cv2.imwrite(infile_name + '_slide_b.png', out_img_b2)
-    cv2.imwrite(infile_name + '_slide_g.png', out_img_g2)
-    cv2.imwrite(infile_name + '_slide_r.png', out_img_r2)
+    cv2.imwrite(root_dir + '/' + infile_name + '_slide_b.png', out_img_b2)
+    cv2.imwrite(root_dir + '/' + infile_name + '_slide_g.png', out_img_g2)
+    cv2.imwrite(root_dir + '/' + infile_name + '_slide_r.png', out_img_r2)
     #img2.save(outfile, 'PNG')
 #    printImage(outfile)
     return
 
-def create_single_rgb_slide(infile, color):
+def create_single_rgb_slide(infile, color, root_dir='ncaieee_ext'):
     ############################
     # Candidate image preparation
     #img = Image.open(infile)
@@ -219,7 +283,7 @@ def create_single_rgb_slide(infile, color):
 #    print("save_negative_image: Candidate Image size: {}".format(infile_img.size))
     print('create_single_rgb_slide')
     infile_name = Path(infile).stem
-    infile_name = 'ncaieee/' + infile_name
+    # infile_name = root_dir + '/' + infile_name
     # Split the image into R, G, and B channels
     # Load the RGB image
     image = cv2.imread(infile)
@@ -243,8 +307,8 @@ def create_single_rgb_slide(infile, color):
     # Save or work with the individual channels as needed
     print(out_img_gr.shape)
     print(out_img_gr.size)
-    cv2.imwrite(infile_name + f'_gr_{color}.png', out_img_gr)
-    cv2.imwrite(infile_name + f'_c_{color}.png', out_img_c)
+    cv2.imwrite(root_dir + '/' + infile_name + f'_gr_{color}.png', out_img_gr)
+    cv2.imwrite(root_dir + '/' + infile_name + f'_c_{color}.png', out_img_c)
 
     out_img_2 = np.zeros_like(image)
 #    print(image.shape)
@@ -347,18 +411,26 @@ def recover_image(infile):
     cv2.imwrite(infile_name + f'_slide_gr_rec.png', out_img_2gr)
     cv2.imwrite(infile_name + f'_slide_c_rec.png', out_img_2c)
 
-def create_gs_image(infile):
+def create_gs_image(infile, root_dir = './2024'):
     print('create_gs_image')
     # Load the RGB image
     rgb_image = cv2.imread(infile)
     infile_name = Path(infile).stem
-    infile_name = 'ncaieee/' + infile_name + 'gl.png'
+    infile_name_gs = root_dir + '/' + infile_name + 'gs.png'
 
     # Convert to grayscale
     gray_image = cv2.cvtColor(rgb_image, cv2.COLOR_BGR2GRAY)
 
     # Save the grayscale image
-    cv2.imwrite(infile_name, gray_image)
+    print(f'create_gs_image infile_name_gs: {infile_name_gs}')
+    cv2.imwrite(infile_name_gs, gray_image)
+    # Apply binary thresholding
+    # 127 is the threshold value, and 255 is the maximum value that can be assigned
+    infile_name_bw = root_dir + '/' + infile_name + 'bw.png'
+    _, binary_image = cv2.threshold(gray_image, 127, 255, cv2.THRESH_BINARY)
+    print(f'create_gs_image infile_name_bw: {infile_name_bw}')
+    cv2.imwrite(infile_name_bw, binary_image)
+
 
 def ves_games(infile):
     print('ves_games')
@@ -957,9 +1029,25 @@ if __name__ == '__main__':
 
 
     # 03.11.2023
-    infile = './Lenna_combined_64.png'
-    #randomize_unary_pixels_rgb_rand(infile, step = 4, search_range = (16, 16), root_dir='ncaieee_ext')
-    randomize_unary_pixels_rgb_rand_dif_col(infile, step = 8, search_range = (4, 4), root_dir='ncaieee_ext')
+    # infile = './Lenna_combined_64.png'
+    # #randomize_unary_pixels_rgb_rand(infile, step = 4, search_range = (16, 16), root_dir='ncaieee_ext')
+    # randomize_unary_pixels_rgb_rand_dif_col(infile, step = 8, search_range = (4, 4), root_dir='ncaieee_ext')
+
+    # 03.06.2024
+    root_dir = './2024'
+    infile = './2024/Mandrill512X512X24.tiff'
+    #infile = './2024/Mandrill512X512X24_gr_b.png'
+    create_gs_image(infile, root_dir='./2024')
+    infile_name = Path(infile).stem
+    infile_name_bw = root_dir + '/' + infile_name + 'bw.png'
+
+    create_gby_image(infile_name_bw, root_dir='./2024')
+    #create_single_rgb_slide(infile,'r', root_dir='./2024')
+    #create_single_rgb_slide(infile,'b', root_dir='./2024')
+    #create_single_rgb_slide(infile,'g', root_dir='./2024')
+
+    # recover_image(infile)
+    # create_gs_image(infile)
 
     # print_orig_and_unary_pixels - Run on the original image and print coordinates, original pixel value, unary label value from the steps_ranges list
     # run on 3 color files

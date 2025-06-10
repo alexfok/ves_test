@@ -1,8 +1,42 @@
-# TODO
-add col parameter
-duplicate encrypt function
-create 3 images from RGB - R,G,B
-print images
+# TODO 22.05.2024
+run alg1 with image:    ./2025/Images/Mandrill512X512X24bw_BW.png
+1. encode image
+    save slides in ./2025/slides/
+    save results in ./2025/out_images/
+python alg1.py -t ./2025/Images/Mandrill512X512X24bw_BW.png -c ./2025/Images/Mandrill512X512X24bw_BW.png -enc
+2. extend encryption algorithm to support more than 2 slides
+3. Analyze and collect images statistics
+4. Define and implement Byzantine actions
+5. Run Byzantine on created slides and decode image
+6. Analyze and collect images statistics
+python alg1.py -t ./2025/Images/Mandrill512X512X24bw_BW.png -enc --nslides 2 --comp1
+python alg1.py -t ./2025/Images/Mandrill512X512X24bw_BW.png -enc --nslides 21 --comp1 --b_num 5 --b_pixels 250144
+python alg1.py -t ./2025/Images/Mandrill512X512X24bw_BW.png -enc --nslides 21 --comp1 --b_num 0,1,2,3,4,5 --b_pixels 262144
+# Encrypt and run Byzantine affected recovery
+python alg1.py -t ./2025/Images/Mandrill512X512X24bw_BW.png -enc --nslides 21 --comp1 --b_num 0,1,2,3,4,5 --b_pixels 20000 --m 4 --k 2 --rand
+# run Byzantine affected recovery
+python alg1.py -t ./2025/Images/Mandrill512X512X24bw_BW.png --nslides 21 --comp1 --b_num 0,1,2,3,4,5 --b_pixels 20000 --m 4 --k 2 --rand
+
+#
+Original Image: total=262144, black=124158 (47.36%), white=137986 (52.64%)
+
+# Plot Byzantine recovery with --b_pixels 20000
+python alg1.py -t ./2025/Images/Mandrill512X512X24bw_BW.png --plot_results
+    x_values: ['0', '1', '2', '3', '4', '5'] x_values lenght: 6
+    y_values: [1.0, 0.9242894206658646, 0.8538329975504761, 0.7887176959981448, 0.727697012740423, 0.6722928413027408] y_values lenght: 6
+    results: [(0, 20000, 1.0), (1, 20000, 0.9242894206658646), (2, 20000, 0.8538329975504761), (3, 20000, 0.7887176959981448), (4, 20000, 0.727697012740423), (5, 20000, 0.6722928413027408)] results lenght: 6
+
+# Byzantine recovery with --b_pixels 40000 + plot
+python alg1.py -t ./2025/Images/Mandrill512X512X24bw_BW.png --nslides 21 --comp1 --b_num 0,1,2,3,4,5 --b_pixels 40000 --m 4 --k 2 --rand
+    x_values: ['0', '1', '2', '3', '4', '5'] x_values lenght: 6
+    y_values: [1.0, 0.8480280608177642, 0.7191091849897816, 0.6098299827518734, 0.5172191381734379, 0.43683417158262433] y_values lenght: 6
+    results: [(0, 40000, 1.0), (1, 40000, 0.8480280608177642), (2, 40000, 0.7191091849897816), (3, 40000, 0.6098299827518734), (4, 40000, 0.5172191381734379), (5, 40000, 0.43683417158262433)] results lenght: 6
+
+
+python alg1.py -t ./2025/Images/Mandrill512X512X24bw_BW.png --nslides 21 --comp1 --b_num 0,1,2,3,4,5 --b_pixels 80000 --m 4 --k 2 --rand
+    x_values: ['0', '1', '2', '3', '4', '5'] x_values lenght: 6
+    y_values: [1.0, 0.6953893873291493, 0.48351282014117375, 0.3334541185337643, 0.23503109011059092, 0.16253098140391053] y_values lenght: 6
+    results: [(0, 80000, 1.0), (1, 80000, 0.6953893873291493), (2, 80000, 0.48351282014117375), (3, 80000, 0.3334541185337643), (4, 80000, 0.23503109011059092), (5, 80000, 0.16253098140391053)] results lenght: 6
 
 print_orig_and_unary_pixels: search_ranges: (220, 255), steps_ranges: [64]
 range_size: 64
